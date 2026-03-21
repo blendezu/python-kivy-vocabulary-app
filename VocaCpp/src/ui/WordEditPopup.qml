@@ -125,6 +125,10 @@ Popup {
         } else {
             addMeaningRow("", [""], [])
         }
+        // Sicherheitsnetz: mindestens ein Feld immer
+        if (meaningRows.length === 0) {
+            addMeaningRow("", [""], [])
+        }
     }
 
     function collectData() {
@@ -210,7 +214,7 @@ Popup {
             property alias posRowItem: posTagsRow
             width: parent ? parent.width : 0
             spacing: 4
-            topPadding: 6
+            Item { width: 1; height: 4 }
 
             // POS row
             Row {
