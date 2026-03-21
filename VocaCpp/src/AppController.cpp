@@ -193,21 +193,100 @@ void AppController::removeCurrentWord()
 {
     QString w = m_state->currentWord();
     if (w.isEmpty()) return;
-    
-    m_state->removedWords.insert(w.toLower());
-    m_state->knownWords.remove(w);
-    m_state->newWords.remove(w);
-    
-    // Clean sequences
-    QStringList kSeq = m_state->knownSequence();
-    if (kSeq.removeAll(w)) m_state->setKnownSequence(kSeq);
-    
+    removeWord(w);
+    requestNextWord();
+}
+
+void AppController::moveWordToKnown(const QString &word)
+{
+    if (word.isEmpty()) return;
+    QString lw = word.toLower();
+
+    m_state->newWords.remove(word);
     QStringList nSeq = m_state->newSequence();
-    if (nSeq.removeAll(w)) m_state->setNewSequence(nSeq);
+    if (nSeq.removeAll(word)) m_state->setNewSequence(nSeq);
+
+    m_state->knownWords.insert(word);
+    QStringList kSeq = m_state->knownSequence();
+    if (!kSeq.contains(word)) {
+        kSeq.append(word);
+        m_state->setKnownSequence(kSeq);
+    }
     
     m_eligibleDirty = true;
     m_store->saveAsync();
-    requestNextWord();
+}
+
+void AppController::moveWordToNew(const QString &word)
+{
+    if (word.isEmpty()) return;
+    QString lw = word.toLower();
+
+    m_state->knownWords.remove(word);
+    QStringList kSeq = m_state->knownSequence();
+    if (kSeq.removeAll(word)) m_state->setKnownSequence(kSeq);
+
+    m_state->newWords.insert(word);
+    QStringList nSeq = m_state->newSequence();
+    if (!nSeq.contains(word)) {
+        nSeq.append(word);
+        m_state->setNewSequence(nSeq);
+    }
+
+    m_eligibleDirty = true;
+    m_store->saveAsync();
+}
+
+void AppController::removeWord(const QString &word)
+{
+    if (word.isEmpty()) return;
+    QString lw = word.toLower();
+
+    m_state->removedWords.insert(lw);
+    m_state->knownWords.remove(word);
+    m_state->newWords.remove(word);
+
+    // Update sequences
+    QStringList rSeq = m_state->removedSequence();
+    rSeq.removeAll(word);
+    rSeq.prepend(word);
+    m_state->setRemovedSequence(rSeq);
+    
+    QStringList kSeq = m_state->knownSequence();
+    if (kSeq.removeAll(word)) m_state->setKnownSequence(kSeq);
+    
+    QStringList nSeq = m_state->newSequence();
+    if (nSeq.removeAll(word)) m_state->setNewSequence(nSeq);
+    
+    m_eligibleDirty = true;
+    m_store->saveAsync();
+}
+
+void AppController::restoreRemovedWord(const QString &word)
+{
+    if (word.isEmpty()) return;
+    QString lw = word.toLower();
+
+    // 1) Remove from removed list
+    m_state->removedWords.remove(lw);
+    QStringList rSeq = m_state->removedSequence();
+    if (rSeq.removeAll(word)) m_state->setRemovedSequence(rSeq);
+
+    // 2) Remove from new/known to be neutral
+    m_state->knownWords.remove(word);
+    m_state->newWords.remove(word);
+
+    QStringList kSeq = m_state->knownSequence();
+    if (kSeq.removeAll(word)) m_state->setKnownSequence(kSeq);
+    QStringList nSeq = m_state->newSequence();
+    if (nSeq.removeAll(word)) m_state->setNewSequence(nSeq);
+
+    // 3) Display it in main screen (assuming it becomes current word)
+    m_state->setCurrentWord(word);
+    m_state->displayedWords.insert(word);
+
+    m_eligibleDirty = true;
+    m_store->saveAsync();
 }
 
 void AppController::save()

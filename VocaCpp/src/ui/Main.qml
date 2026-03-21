@@ -13,6 +13,9 @@ ApplicationWindow {
     color: "#121419" // bg
 
     property var appState: app.state
+    
+    property string selectedWord: ""
+    property string selectedOrigin: ""
 
     component ColorButton : Button {
         id: control
@@ -48,6 +51,7 @@ ApplicationWindow {
             ColorButton {
                 text: "Add new words"
                 Layout.fillWidth: true
+                Layout.preferredWidth: 1
                 Layout.fillHeight: true
                 font.pixelSize: 18
                 bgColor: "#242a36" 
@@ -56,6 +60,7 @@ ApplicationWindow {
             ColorButton {
                 text: "Check for new\nwords from text"
                 Layout.fillWidth: true
+                Layout.preferredWidth: 1
                 Layout.fillHeight: true
                 font.pixelSize: 18
                 bgColor: "#3385e6" 
@@ -64,6 +69,7 @@ ApplicationWindow {
             ColorButton {
                 text: "Expressions"
                 Layout.fillWidth: true
+                Layout.preferredWidth: 1
                 Layout.fillHeight: true
                 font.pixelSize: 18
                 bgColor: "#8c52bf" 
@@ -72,6 +78,7 @@ ApplicationWindow {
             ColorButton {
                 text: "Learn"
                 Layout.fillWidth: true
+                Layout.preferredWidth: 1
                 Layout.fillHeight: true
                 font.pixelSize: 18
                 bgColor: "#e6ad3e" 
@@ -80,6 +87,7 @@ ApplicationWindow {
             ColorButton {
                 text: "Learned words"
                 Layout.fillWidth: true
+                Layout.preferredWidth: 1
                 Layout.fillHeight: true
                 font.pixelSize: 18
                 bgColor: "#1a5900" 
@@ -88,6 +96,7 @@ ApplicationWindow {
             ColorButton {
                 text: "Review"
                 Layout.fillWidth: true
+                Layout.preferredWidth: 1
                 Layout.fillHeight: true
                 font.pixelSize: 18
                 bgColor: "#cc4c4c" 
@@ -96,6 +105,7 @@ ApplicationWindow {
             ColorButton {
                 text: "Dashboard"
                 Layout.fillWidth: true
+                Layout.preferredWidth: 1
                 Layout.fillHeight: true
                 font.pixelSize: 18
                 bgColor: "#40a661" 
@@ -153,6 +163,7 @@ ApplicationWindow {
             ColorButton {
                 text: "Remove this word"
                 Layout.fillWidth: true
+                Layout.preferredWidth: 1
                 Layout.fillHeight: true
                 font.pixelSize: 24
                 bgColor: "#cc4c4c"
@@ -161,6 +172,7 @@ ApplicationWindow {
             ColorButton {
                 text: "Next word"
                 Layout.fillWidth: true
+                Layout.preferredWidth: 1
                 Layout.fillHeight: true
                 font.pixelSize: 24
                 bgColor: "#5cc27d"
@@ -169,6 +181,7 @@ ApplicationWindow {
             ColorButton {
                 text: "Correct"
                 Layout.fillWidth: true
+                Layout.preferredWidth: 1
                 Layout.fillHeight: true
                 font.pixelSize: 24
                 bgColor: "#3385e6"
@@ -180,6 +193,7 @@ ApplicationWindow {
             ColorButton {
                 text: "New word"
                 Layout.fillWidth: true
+                Layout.preferredWidth: 1
                 Layout.fillHeight: true
                 font.pixelSize: 24
                 bgColor: "#eda640"
@@ -226,12 +240,20 @@ ApplicationWindow {
                         delegate: Rectangle {
                             width: ListView.view.width
                             height: 35
-                            color: index % 2 === 0 ? "#1a1a1a" : "#222222"
+                            property bool isSelected: window.selectedWord === modelData && window.selectedOrigin === "known"
+                            color: isSelected ? "#1966b3" : (index % 2 === 0 ? "#1a1a1a" : "#222222")
                             Text {
                                 anchors.centerIn: parent
                                 text: modelData
                                 color: "#f2faff"
                                 font.pixelSize: 14
+                            }
+                            MouseArea {
+                                anchors.fill: parent
+                                onClicked: {
+                                    window.selectedWord = modelData;
+                                    window.selectedOrigin = "known";
+                                }
                             }
                         }
                     }
@@ -248,19 +270,37 @@ ApplicationWindow {
                     text: ">>"
                     Layout.fillWidth: true
                     height: 50
-                    bgColor: "#2e2e2e"
+                    bgColor: window.selectedWord !== "" && window.selectedOrigin === "known" ? "#333333" : "#1a1a1a"
+                    enabled: window.selectedWord !== "" && window.selectedOrigin === "known"
+                    onClicked: {
+                        app.moveWordToNew(window.selectedWord);
+                        window.selectedWord = "";
+                        window.selectedOrigin = "";
+                    }
                 }
                 ColorButton {
                     text: "<<"
                     Layout.fillWidth: true
                     height: 50
-                    bgColor: "#2e2e2e"
+                    bgColor: window.selectedWord !== "" && window.selectedOrigin === "new" ? "#333333" : "#1a1a1a"
+                    enabled: window.selectedWord !== "" && window.selectedOrigin === "new"
+                    onClicked: {
+                        app.moveWordToKnown(window.selectedWord);
+                        window.selectedWord = "";
+                        window.selectedOrigin = "";
+                    }
                 }
                 ColorButton {
                     text: "X"
                     Layout.fillWidth: true
                     height: 50
-                    bgColor: "#4a1919"
+                    bgColor: window.selectedWord !== "" && (window.selectedOrigin === "known" || window.selectedOrigin === "new") ? "#aa3333" : "#4a1919"
+                    enabled: window.selectedWord !== "" && (window.selectedOrigin === "known" || window.selectedOrigin === "new")
+                    onClicked: {
+                        app.removeWord(window.selectedWord);
+                        window.selectedWord = "";
+                        window.selectedOrigin = "";
+                    }
                 }
                 Item { Layout.fillHeight: true }
             }
@@ -296,12 +336,20 @@ ApplicationWindow {
                         delegate: Rectangle {
                             width: ListView.view.width
                             height: 35
-                            color: index % 2 === 0 ? "#26221a" : "#2e2a22"
+                            property bool isSelected: window.selectedWord === modelData && window.selectedOrigin === "new"
+                            color: isSelected ? "#1966b3" : (index % 2 === 0 ? "#26221a" : "#2e2a22")
                             Text {
                                 anchors.centerIn: parent
                                 text: modelData
                                 color: "#f2faff"
                                 font.pixelSize: 14
+                            }
+                            MouseArea {
+                                anchors.fill: parent
+                                onClicked: {
+                                    window.selectedWord = modelData;
+                                    window.selectedOrigin = "new";
+                                }
                             }
                         }
                     }
@@ -339,12 +387,25 @@ ApplicationWindow {
                         delegate: Rectangle {
                             width: ListView.view.width
                             height: 35
-                            color: index % 2 === 0 ? "#261a1a" : "#2e2222"
+                            property bool isSelected: window.selectedWord === modelData && window.selectedOrigin === "removed"
+                            color: isSelected ? "#1966b3" : (index % 2 === 0 ? "#261a1a" : "#2e2222")
                             Text {
                                 anchors.centerIn: parent
                                 text: modelData
                                 color: "#f2faff"
                                 font.pixelSize: 14
+                            }
+                            MouseArea {
+                                anchors.fill: parent
+                                onClicked: {
+                                    window.selectedWord = modelData;
+                                    window.selectedOrigin = "removed";
+                                }
+                                onDoubleClicked: {
+                                    app.restoreRemovedWord(modelData);
+                                    window.selectedWord = "";
+                                    window.selectedOrigin = "";
+                                }
                             }
                         }
                     }

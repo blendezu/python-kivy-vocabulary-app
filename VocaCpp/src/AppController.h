@@ -28,6 +28,12 @@ public:
     Q_INVOKABLE void removeCurrentWord();
     Q_INVOKABLE void save();
 
+    // List Transfer Methods
+    Q_INVOKABLE void moveWordToKnown(const QString &word);
+    Q_INVOKABLE void moveWordToNew(const QString &word);
+    Q_INVOKABLE void removeWord(const QString &word);
+    Q_INVOKABLE void restoreRemovedWord(const QString &word);
+
     // Learn Mode
     Q_INVOKABLE void nextLearnWord();
     Q_INVOKABLE void markLearnWordKnown();
