@@ -19,92 +19,286 @@ Popup {
     }
 
     property string wordToEdit: ""
-    property var detailsList: [{"meaning": "", "examples": [""], "pos": []}]
     property bool isTongueTwister: false
     property var posTags: ["n", "v", "adj", "adv", "prep", "conj"]
 
+    // ── imperative data: each entry = { meaningInput, exInputs[], posButtons[], row }
+    property var meaningRows: []
+
+    // ── helpers ──────────────────────────────────────────────────────────────
+    function addExampleToRow(rowObj, initialText) {
+        var comp = Qt.createComponent("_ExampleRow.qml")
+        // Inline since we can't easily create sub-files
+        var exRow = exampleRowComp.createObject(rowObj.exBox, { "initialText": initialText })
+        exRow.deleteRequested.connect(function() { _removeExampleFromRow(rowObj, exRow) })
+        rowObj.exInputs.push(exRow)
+    }
+
+    function _removeExampleFromRow(rowObj, exRow) {
+        var idx = rowObj.exInputs.indexOf(exRow)
+        if (idx >= 0) rowObj.exInputs.splice(idx, 1)
+        exRow.destroy()
+    }
+
+    function addMeaningRow(meaning, examples, pos) {
+        var rowObj = { meaningInput: null, exInputs: [], posButtons: [], exBox: null }
+        var row = meaningRowComp.createObject(meaningsColumn, {})
+        rowObj.row = row
+        rowObj.exBox = row.exBoxItem
+        rowObj.meaningInput = row.meaningInput
+        rowObj.posButtonsContainer = row.posRowItem
+
+        // Initialize meaning text
+        row.meaningInput.text = meaning || ""
+
+        // POS buttons
+        for (var i = 0; i < posTags.length; i++) {
+            var tag = posTags[i]
+            var isActive = pos && pos.indexOf(tag) >= 0
+            var pbtn = posButtonComp.createObject(row.posRowItem, { "tagName": tag, "active": isActive })
+            rowObj.posButtons.push(pbtn)
+        }
+
+        // Delete meaning callback
+        row.deleteClicked.connect(function() { _removeMeaningRow(rowObj) })
+        row.addExampleClicked.connect(function() { addExampleToRow(rowObj, "") })
+
+        rowObj.exInputs = []
+        rowObj.exBox = row.exBoxItem
+
+        // Add examples
+        if (examples && examples.length > 0) {
+            for (var j = 0; j < examples.length; j++) {
+                var exRow = exampleRowComp.createObject(row.exBoxItem, { "initialText": examples[j] || "" })
+                var _exRow = exRow; var _rowObj = rowObj
+                exRow.deleteRequested.connect((function(er, ro) { return function() { _removeExampleFromRow(ro, er) } })(exRow, rowObj))
+                rowObj.exInputs.push(exRow)
+            }
+        } else {
+            var exRow0 = exampleRowComp.createObject(row.exBoxItem, { "initialText": "" })
+            var _rowObj0 = rowObj
+            exRow0.deleteRequested.connect((function(er, ro) { return function() { _removeExampleFromRow(ro, er) } })(exRow0, rowObj))
+            rowObj.exInputs.push(exRow0)
+        }
+
+        meaningRows.push(rowObj)
+    }
+
+    function _removeMeaningRow(rowObj) {
+        var idx = meaningRows.indexOf(rowObj)
+        if (idx < 0) return
+        if (meaningRows.length <= 1) {
+            // Only one left: clear instead of delete (like Python)
+            rowObj.meaningInput.text = ""
+            for (var i = rowObj.exInputs.length - 1; i >= 0; i--) {
+                rowObj.exInputs[i].destroy()
+            }
+            rowObj.exInputs = []
+            var exRow = exampleRowComp.createObject(rowObj.exBox, { "initialText": "" })
+            exRow.deleteRequested.connect((function(er, ro) { return function() { _removeExampleFromRow(ro, er) } })(exRow, rowObj))
+            rowObj.exInputs.push(exRow)
+            return
+        }
+        meaningRows.splice(idx, 1)
+        rowObj.row.destroy()
+    }
+
+    function clearAll() {
+        for (var i = 0; i < meaningRows.length; i++) {
+            meaningRows[i].row.destroy()
+        }
+        meaningRows = []
+    }
+
     function loadWord(word) {
-        if (word === "") return
+        if (!word) return
         wordToEdit = word
+        wordInput.text = word
+        ipaField.text = app.state.wordIpa[word.toLowerCase()] || ""
+        clearAll()
         var d = app.state.wordDetails[word.toLowerCase()]
         if (d && d.length > 0) {
-            var temp = []
             for (var i = 0; i < d.length; i++) {
-                temp.push({
-                    "meaning": d[i].meaning,
-                    "examples": d[i].examples.length > 0 ? d[i].examples.slice() : [""],
-                    "pos": d[i].pos ? d[i].pos.slice() : []
-                })
+                var exs = d[i].examples && d[i].examples.length > 0 ? d[i].examples : [""]
+                addMeaningRow(d[i].meaning || "", exs, d[i].pos || [])
             }
-            detailsList = temp
         } else {
-            detailsList = [{"meaning": "", "examples": [""], "pos": []}]
+            addMeaningRow("", [""], [])
         }
-        // Always ensure at least one entry
-        if (detailsList.length === 0) {
-            detailsList = [{"meaning": "", "examples": [""], "pos": []}]
+    }
+
+    function collectData() {
+        var result = []
+        for (var i = 0; i < meaningRows.length; i++) {
+            var ro = meaningRows[i]
+            var m = ro.meaningInput.text
+            var exs = []
+            for (var j = 0; j < ro.exInputs.length; j++) {
+                var t = ro.exInputs[j].exText
+                if (t) exs.push(t)
+            }
+            var pos = []
+            for (var k = 0; k < ro.posButtons.length; k++) {
+                if (ro.posButtons[k].active) pos.push(ro.posButtons[k].tagName)
+            }
+            result.push({ "meaning": m, "examples": exs, "pos": pos })
         }
-        ipaField.text = app.state.wordIpa[word.toLowerCase()] || ""
-        isTongueTwister = false
-        wordInput.text = word
-        detailsRepeater.model = 0
-        detailsRepeater.model = detailsList.length
+        return result
     }
 
     onOpened: loadWord(wordToEdit)
 
+    // ─── Component definitions ───────────────────────────────────────────────
+    Component {
+        id: posButtonComp
+        Rectangle {
+            property string tagName: ""
+            property bool active: false
+            width: 38; height: 24; radius: 4
+            color: active ? "#3385e6" : "#333344"
+            border.color: "#555566"; border.width: 1
+            Text { anchors.centerIn: parent; text: tagName; color: "white"; font.pixelSize: 13 }
+            MouseArea {
+                anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                onClicked: active = !active
+            }
+        }
+    }
+
+    Component {
+        id: exampleRowComp
+        Item {
+            property string initialText: ""
+            property alias exText: exInput.text
+            signal deleteRequested
+            width: parent ? parent.width : 0
+            height: exInput.implicitHeight + 4
+            Row {
+                width: parent.width
+                spacing: 4
+                TextArea {
+                    id: exInput
+                    text: initialText
+                    placeholderText: "Example"
+                    font.pixelSize: 17
+                    width: parent.width - 32 - 4
+                    wrapMode: TextArea.Wrap
+                    color: "black"
+                    background: Rectangle { color: "#f5f5f5"; radius: 3 }
+                    implicitHeight: Math.max(32, contentHeight + topPadding + bottomPadding)
+                }
+                Rectangle {
+                    width: 28; height: 28; radius: 4; color: "#aa3333"
+                    anchors.verticalCenter: parent.verticalCenter
+                    Text { anchors.centerIn: parent; text: "x"; color: "white"; font.pixelSize: 12; font.bold: true }
+                    MouseArea {
+                        anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                        onClicked: deleteRequested()
+                    }
+                }
+            }
+        }
+    }
+
+    Component {
+        id: meaningRowComp
+        Column {
+            signal deleteClicked
+            signal addExampleClicked
+            property alias meaningInput: meaningTextArea
+            property alias exBoxItem: exBox
+            property alias posRowItem: posTagsRow
+            width: parent ? parent.width : 0
+            spacing: 4
+            topPadding: 6
+
+            // POS row
+            Row {
+                id: posTagsRow
+                width: parent.width
+                spacing: 4
+                Text { text: "POS:"; color: "#c7d1e0"; font.pixelSize: 14; width: 40 }
+            }
+
+            // Meaning + x button
+            Row {
+                width: parent.width
+                spacing: 4
+                TextArea {
+                    id: meaningTextArea
+                    placeholderText: "Meaning"
+                    font.pixelSize: 18
+                    width: parent.width - 36 - 4
+                    wrapMode: TextArea.Wrap
+                    color: "black"
+                    background: Rectangle { color: "white"; radius: 3 }
+                    implicitHeight: Math.max(36, contentHeight + topPadding + bottomPadding)
+                }
+                Rectangle {
+                    width: 32; height: 32; radius: 4; color: "#aa3333"
+                    anchors.verticalCenter: parent.verticalCenter
+                    Text { anchors.centerIn: parent; text: "x"; color: "white"; font.pixelSize: 14; font.bold: true }
+                    MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: deleteClicked() }
+                }
+            }
+
+            // Example rows container
+            Column {
+                id: exBox
+                width: parent.width
+                leftPadding: 20
+                spacing: 4
+            }
+
+            // + Example button
+            Rectangle {
+                width: 110; height: 26; radius: 4; color: "#3385e6"
+                Text { anchors.centerIn: parent; text: "+ Example"; color: "white"; font.pixelSize: 13 }
+                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: addExampleClicked() }
+            }
+
+            // Divider
+            Rectangle { width: parent.width; height: 1; color: "#2a3040" }
+        }
+    }
+
+    // ─── UI ─────────────────────────────────────────────────────────────────
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 16
         spacing: 10
 
-        // Title
         Text {
             text: wordToEdit + " – Meanings & Examples"
-            color: "#f2faff"
-            font.pixelSize: 22
-            font.bold: true
+            color: "#f2faff"; font.pixelSize: 22; font.bold: true
             Layout.fillWidth: true
         }
         Rectangle { height: 2; Layout.fillWidth: true; color: "#3385e6" }
 
         // Word row
         RowLayout {
-            Layout.fillWidth: true
-            spacing: 6
+            Layout.fillWidth: true; spacing: 6
             Text { text: "Word:"; color: "#c7d1e0"; font.pixelSize: 16; Layout.preferredWidth: 50 }
             TextField {
-                id: wordInput
-                text: wordToEdit
-                font.pixelSize: 16
-                Layout.fillWidth: true
-                color: "black"
-                background: Rectangle { color: "white"; radius: 3 }
+                id: wordInput; font.pixelSize: 16; Layout.fillWidth: true
+                color: "black"; background: Rectangle { color: "white"; radius: 3 }
             }
-            // Rename button
             Rectangle {
                 width: 140; height: 32; radius: 4; color: "#3385e6"
                 Text { anchors.centerIn: parent; text: "Rename word"; color: "white"; font.pixelSize: 14 }
                 MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                    onClicked: {
-                        app.correctWord(wordToEdit, wordInput.text)
-                        wordToEdit = wordInput.text
-                    }
+                    onClicked: { app.correctWord(wordToEdit, wordInput.text); wordToEdit = wordInput.text }
                 }
             }
         }
 
         // IPA row
         RowLayout {
-            Layout.fillWidth: true
-            spacing: 6
+            Layout.fillWidth: true; spacing: 6
             Text { text: "IPA:"; color: "#c7d1e0"; font.pixelSize: 16; Layout.preferredWidth: 50 }
             TextField {
-                id: ipaField
-                font.pixelSize: 16
-                Layout.fillWidth: true
-                color: "black"
-                background: Rectangle { color: "white"; radius: 3 }
+                id: ipaField; font.pixelSize: 16; Layout.fillWidth: true
+                color: "black"; background: Rectangle { color: "white"; radius: 3 }
             }
             Rectangle {
                 width: 80; height: 32; radius: 4; color: "#3385e6"
@@ -113,10 +307,9 @@ Popup {
             }
         }
 
-        // Tongue-twister toggle
+        // Tongue-twister
         RowLayout {
-            Layout.fillWidth: true
-            spacing: 8
+            Layout.fillWidth: true; spacing: 8
             Rectangle {
                 width: 140; height: 28; radius: 4
                 color: isTongueTwister ? "#555577" : "#333344"
@@ -137,147 +330,13 @@ Popup {
             ScrollBar.vertical.policy: ScrollBar.AsNeeded
 
             Column {
+                id: meaningsColumn
                 width: scrollArea.availableWidth
-                spacing: 14
+                spacing: 4
+            }
+        }
 
-                Repeater {
-                    id: detailsRepeater
-                    model: detailsList.length
-
-                    Column {
-                        required property int index
-                        property int extIndex: index
-                        width: scrollArea.availableWidth
-                        spacing: 4
-
-                        // POS row
-                        Row {
-                            width: parent.width
-                            spacing: 4
-                            Text { text: "POS:"; color: "#c7d1e0"; font.pixelSize: 14; Layout.preferredWidth: 40 }
-                            Repeater {
-                                model: posTags
-                                Rectangle {
-                                    required property string modelData
-                                    property bool active: detailsList[extIndex] && detailsList[extIndex].pos.indexOf(modelData) >= 0
-                                    width: 38; height: 24; radius: 4
-                                    color: active ? "#3385e6" : "#333344"
-                                    border.color: "#555566"; border.width: 1
-                                    Text { anchors.centerIn: parent; text: modelData; color: "white"; font.pixelSize: 13 }
-                                    MouseArea {
-                                        anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                                        onClicked: {
-                                            if (!detailsList[extIndex]) return
-                                            var p = detailsList[extIndex].pos.slice()
-                                            var i = p.indexOf(modelData)
-                                            if (i >= 0) p.splice(i, 1)
-                                            else p.push(modelData)
-                                            detailsList[extIndex].pos = p
-                                            detailsList = detailsList.slice() // force update
-                                            detailsRepeater.model = 0
-                                            detailsRepeater.model = detailsList.length
-                                        }
-                                    }
-                                }
-                            }
-                            Item { width: parent.width - 40 * posTags.length - 4 * posTags.length; height: 1 }
-                        }
-
-                        // Meaning row
-                        Row {
-                            width: parent.width
-                            spacing: 4
-                            TextArea {
-                                text: detailsList[extIndex] ? detailsList[extIndex].meaning : ""
-                                placeholderText: "Meaning"
-                                font.pixelSize: 18
-                                width: parent.width - 36 - 4
-                                wrapMode: TextArea.Wrap
-                                color: "black"
-                                background: Rectangle { color: "white"; radius: 3 }
-                                implicitHeight: Math.max(36, contentHeight + topPadding + bottomPadding)
-                                onTextEdited: { if (detailsList[extIndex]) detailsList[extIndex].meaning = text }
-                            }
-                            Rectangle {
-                                width: 32; height: 32; radius: 4; color: "#aa3333"
-                                Text { anchors.centerIn: parent; text: "x"; color: "white"; font.pixelSize: 14; font.bold: true }
-                                MouseArea {
-                                    anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                                    onClicked: {
-                                        var updated = JSON.parse(JSON.stringify(detailsList))
-                                        updated.splice(extIndex, 1)
-                                        if (updated.length === 0) updated.push({"meaning": "", "examples": [""], "pos": []})
-                                        detailsList = updated
-                                        detailsRepeater.model = 0
-                                        detailsRepeater.model = detailsList.length
-                                    }
-                                }
-                            }
-                        }
-
-                        // Examples
-                        Column {
-                            width: parent.width
-                            leftPadding: 20
-                            spacing: 4
-
-                            Repeater {
-                                model: detailsList[extIndex] ? detailsList[extIndex].examples.length : 0
-                                Row {
-                                    required property int index
-                                    property int exIdx: index
-                                    width: scrollArea.availableWidth - 20
-                                    spacing: 4
-                                    TextArea {
-                                        text: detailsList[extIndex] ? (detailsList[extIndex].examples[exIdx] || "") : ""
-                                        placeholderText: "Example"
-                                        font.pixelSize: 17
-                                        width: parent.width - 32 - 4
-                                        wrapMode: TextArea.Wrap
-                                        color: "black"
-                                        background: Rectangle { color: "#f5f5f5"; radius: 3 }
-                                        implicitHeight: Math.max(32, contentHeight + topPadding + bottomPadding)
-                                        onTextEdited: { if (detailsList[extIndex] && detailsList[extIndex].examples) detailsList[extIndex].examples[exIdx] = text }
-                                    }
-                                    Rectangle {
-                                        width: 28; height: 28; radius: 4; color: "#aa3333"
-                                        Text { anchors.centerIn: parent; text: "x"; color: "white"; font.pixelSize: 12; font.bold: true }
-                                        MouseArea {
-                                            anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                                            onClicked: {
-                                                var updated = JSON.parse(JSON.stringify(detailsList))
-                                                updated[extIndex].examples.splice(exIdx, 1)
-                                                if (updated[extIndex].examples.length === 0) updated[extIndex].examples.push("")
-                                                detailsList = updated
-                                                detailsRepeater.model = 0
-                                                detailsRepeater.model = detailsList.length
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-
-                            Rectangle {
-                                width: 110; height: 26; radius: 4; color: "#3385e6"
-                                Text { anchors.centerIn: parent; text: "+ Example"; color: "white"; font.pixelSize: 13 }
-                                MouseArea {
-                                    anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                                    onClicked: {
-                                        var updated = JSON.parse(JSON.stringify(detailsList))
-                                        updated[extIndex].examples.push("")
-                                        detailsList = updated
-                                        detailsRepeater.model = 0
-                                        detailsRepeater.model = detailsList.length
-                                    }
-                                }
-                            }
-                        } // Column examples
-                    } // Column meaning block
-                } // Repeater
-            } // Column (scroll content)
-        } // ScrollView
-
-        // Footer buttons
+        // Footer
         RowLayout {
             Layout.fillWidth: true
             Layout.preferredHeight: 50
@@ -301,19 +360,17 @@ Popup {
                         onClicked: {
                             var lbl = modelData.label
                             if (lbl === "+ Meaning") {
-                                detailsList.push({"meaning": "", "examples": [""], "pos": []})
-                                detailsRepeater.model = 0
-                                detailsRepeater.model = detailsList.length
+                                addMeaningRow("", [""], [])
                             } else if (lbl === "Save") {
-                                app.updateWordDetails(wordToEdit, detailsList, ipaField.text)
+                                app.updateWordDetails(wordToEdit, collectData(), ipaField.text)
                                 root.close()
                             } else if (lbl === "Next") {
-                                app.updateWordDetails(wordToEdit, detailsList, ipaField.text)
+                                app.updateWordDetails(wordToEdit, collectData(), ipaField.text)
                                 app.nextLearnWord()
                                 var nw = app.state.learnCurrentWord
                                 if (!nw) root.close()
                                 else loadWord(nw)
-                            } else if (lbl === "Close" || lbl === "Back") {
+                            } else {
                                 root.close()
                             }
                         }
