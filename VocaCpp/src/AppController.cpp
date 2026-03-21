@@ -6,6 +6,8 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
+#include <QFileInfo>
+#include <algorithm>
 
 AppController::AppController(QObject *parent) : QObject(parent)
 {
@@ -22,15 +24,37 @@ AppController::AppController(QObject *parent) : QObject(parent)
         qDebug() << "No progress found, starting fresh.";
     }
 
-    // Load Vocabulary (Mocking loading from resource or bundled file)
-    // In real app, we'd read b1_word_from_cambridge.json
-    // For now, let's inject some dummy data if empty or try to load from a relative path
-    // TODO: Copy b1_word_from_cambridge.json to build dir or resources
-    if (m_state->vocabulary.isEmpty()) {
-         m_state->vocabulary << "apple" << "banana" << "conversation" << "determine" << "example" << "function" << "grateful" << "harmony";
-         // Add some details for testing
-         WordDetail d; d.meaning = "A sweet fruit"; d.examples << "I ate an apple."; d.pos << "n";
-         m_state->wordDetails.insert("apple", {d});
+    // Always load vocabulary from the Cambridge B1 JSON first (like Python's load_vocabulary_from_json)
+    {
+        // Look for the JSON next to the project root (VocaCpp/b1_word_from_cambridge.json)
+        // __FILE__ is VocaCpp/src/AppController.cpp, so go up one level to VocaCpp/
+        QString vocabJsonPath = QFileInfo(QString(QStringLiteral(__FILE__))).absolutePath();
+        vocabJsonPath += "/../b1_word_from_cambridge.json";
+        QFile file(vocabJsonPath);
+        if (file.open(QIODevice::ReadOnly)) {
+            QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
+            if (doc.isObject()) {
+                QJsonArray wordsArray = doc.object().value("words").toArray();
+                QSet<QString> seen;
+                m_state->vocabulary.clear();
+                for (const QJsonValue &val : wordsArray) {
+                    QString w = val.toString().trimmed();
+                    if (w.length() < 2) continue;
+                    QString lw = w.toLower();
+                    if (!seen.contains(lw)) {
+                        seen.insert(lw);
+                        m_state->vocabulary.append(w);
+                    }
+                }
+                std::sort(m_state->vocabulary.begin(), m_state->vocabulary.end(), [](const QString &a, const QString &b){
+                    return a.compare(b, Qt::CaseInsensitive) < 0;
+                });
+                qDebug() << "Loaded" << m_state->vocabulary.size() << "words from Cambridge list.";
+            }
+            file.close();
+        } else {
+            qWarning() << "Could not open Cambridge JSON at:" << vocabJsonPath;
+        }
     }
 
     m_tts = new TTSService(this);

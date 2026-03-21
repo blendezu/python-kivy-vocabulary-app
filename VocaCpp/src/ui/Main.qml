@@ -140,16 +140,38 @@ ApplicationWindow {
                 Layout.topMargin: 20
             }
 
+            // Hint toggle row
+            RowLayout {
+                Layout.fillWidth: true
+                Layout.topMargin: 10
+                Item { Layout.fillWidth: true }
+                Text {
+                    property bool hintVisible: true
+                    id: hintToggle
+                    text: hintVisible ? "▾ Note" : "▸ Note"
+                    color: "#8899aa"
+                    font.pixelSize: 13
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: hintToggle.hintVisible = !hintToggle.hintVisible
+                    }
+                }
+                Item { Layout.fillWidth: true }
+            }
+
             Text {
                 text: "Note: The current word is automatically marked as 'Known' when you click 'Next word'. Tap 'New word' to move it to 'New words'. Double-tap a removed word to restore it."
                 color: "#c7d1e0"
-                font.pixelSize: 14
+                font.pixelSize: 13
                 wrapMode: Text.WordWrap
                 horizontalAlignment: Text.AlignHCenter
                 Layout.fillWidth: true
                 leftPadding: width * 0.1
                 rightPadding: width * 0.1
-                Layout.topMargin: 20
+                visible: hintToggle.hintVisible
+                opacity: hintToggle.hintVisible ? 1.0 : 0.0
+                Behavior on opacity { NumberAnimation { duration: 150 } }
             }
 
             Item { Layout.fillHeight: true; Layout.minimumHeight: 20 }
