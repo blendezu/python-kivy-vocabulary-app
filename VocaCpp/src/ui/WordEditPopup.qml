@@ -4,173 +4,331 @@ import QtQuick.Layouts
 
 Popup {
     id: root
-    width: 700
-    height: 900
+    width: window.width * 0.95
+    height: window.height * 0.92
     modal: true
     focus: true
-    anchors.centerIn: Overlay.overlay
-    closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-
-    property string targetWord: ""
-    property string targetIpa: ""
-    property var detailsList: []
-
-    signal saved()
+    anchors.centerIn: parent
 
     background: Rectangle {
-        color: "#1e1e1e"
-        border.color: "#333333"
+        color: "#1e232e"
+        radius: 8
+        border.color: "#3385e6"
         border.width: 1
-        radius: 10
     }
 
+    property string wordToEdit: ""
+    property var detailsList: []
+    property bool isTongueTwister: false
+    
+    // POS Enum roughly
+    property var posTags: ["n", "v", "adj", "adv", "prep", "conj"]
+
     onOpened: {
-        // Load data from app state for targetWord
-        if (targetWord === "") return
-        var d = app.state.wordDetails[targetWord.toLowerCase()]
-        // Deep copy to allow editing without live update until save
+        if (wordToEdit === "") return
+        var d = app.state.wordDetails[wordToEdit.toLowerCase()]
         if (d) {
-            // Convert to JS array of objects
             var temp = []
-            for (var i=0; i<d.length; i++) temp.push({
-                "meaning": d[i].meaning,
-                "examples": d[i].examples, 
-                "pos": d[i].pos
-            })
+            for (var i = 0; i < d.length; i++) {
+                temp.push({
+                    "meaning": d[i].meaning,
+                    "examples": d[i].examples.length > 0 ? d[i].examples : [""],
+                    "pos": d[i].pos || []
+                })
+            }
             detailsList = temp
         } else {
-            detailsList = []
+            detailsList = [{"meaning": "", "examples": [""], "pos": []}]
         }
-        targetIpa = app.state.wordIpa[targetWord.toLowerCase()] || ""
+        ipaField.text = app.state.wordIpa[wordToEdit.toLowerCase()] || ""
+        isTongueTwister = false // TODO: bind tongue_twisters set if available
+        wordInput.text = wordToEdit
         
-        // Reset models
-        detailsModel.clear()
-        for (var k=0; k<detailsList.length; k++) {
-            detailsModel.append(detailsList[k])
-        }
+        // Refresh Repeater
+        detailsRepeater.model = 0
+        detailsRepeater.model = detailsList.length
     }
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: 20
-        spacing: 15
+        anchors.margins: 16
+        spacing: 12
 
         Text {
-            text: "Edit Word: " + root.targetWord
-            color: "white"
+            text: wordToEdit + " - Meanings & Examples"
+            color: "#f2faff"
             font.pixelSize: 24
-            font.bold: true
-            Layout.alignment: Qt.AlignHCenter
+            Layout.fillWidth: true
         }
-
+        
+        // --- Rename Row ---
         RowLayout {
-            Text { text: "IPA:"; color: "#dddddd"; font.pixelSize: 18 }
+            Layout.fillWidth: true
+            spacing: 8
+            Text { text: "Word:"; color: "#c7d1e0"; font.pixelSize: 18; Layout.preferredWidth: 70 }
             TextField {
-                id: ipaField
-                text: root.targetIpa
-                Layout.fillWidth: true
+                id: wordInput
+                text: wordToEdit
                 font.pixelSize: 18
-                color: "black"
-                palette.base: "white"
+                Layout.fillWidth: true
+            }
+            Button {
+                text: "Rename word"
+                font.pixelSize: 18
+                palette.buttonText: "#f2faff"
+                palette.button: "#3385e6"
+                Layout.preferredWidth: 200
+                onClicked: {
+                    // C++ rename logic not yet implemented in AppController but user requested UI focus
+                    // app.renameWord(wordToEdit, wordInput.text)
+                    wordToEdit = wordInput.text
+                }
             }
         }
 
-        // List of Meanings
-        ListView {
-            id: listView
+        // --- IPA Row ---
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 8
+            Text { text: "IPA:"; color: "#c7d1e0"; font.pixelSize: 18; Layout.preferredWidth: 70 }
+            TextField {
+                id: ipaField
+                font.pixelSize: 18
+                Layout.fillWidth: true
+            }
+            Button {
+                text: "Listen"
+                font.pixelSize: 18
+                palette.buttonText: "#f2faff"
+                palette.button: "#3385e6"
+                Layout.preferredWidth: 200
+                onClicked: app.tts.speak(wordToEdit)
+            }
+        }
+
+        // --- Flags Row ---
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 8
+            Button {
+                text: "Tongue-twister"
+                font.pixelSize: 18
+                checkable: true
+                checked: isTongueTwister
+                onClicked: isTongueTwister = checked
+                Layout.preferredWidth: 220
+            }
+        }
+
+        // --- Meanings List ---
+        ScrollView {
             Layout.fillWidth: true
             Layout.fillHeight: true
             clip: true
-            model: ListModel { id: detailsModel }
-            spacing: 10
 
-            delegate: Rectangle {
-                width: listView.width
-                height: col.height + 20
-                color: "#2a2a2a"
-                radius: 6
-                
-                ColumnLayout {
-                    id: col
-                    anchors.top: parent.top
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.margins: 10
-                    spacing: 5
-                    
-                    Text { text: "Meaning:"; color: "#aaaaaa"; font.pixelSize: 14 }
-                    TextField {
-                        text: model.meaning
+            ColumnLayout {
+                width: parent.width
+                spacing: 16
+
+                Repeater {
+                    id: detailsRepeater
+                    model: detailsList.length
+
+                    Rectangle {
+                        color: "transparent"
                         Layout.fillWidth: true
-                        font.pixelSize: 16
-                        color: "black"
-                        palette.base: "white"
-                        onEditingFinished: model.meaning = text
-                    }
-                    
-                    Text { text: "Example (one per line):"; color: "#aaaaaa"; font.pixelSize: 14 }
-                    TextArea {
-                        text: (model.examples && model.examples.join) ? model.examples.join("\n") : ""
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 60
-                        font.pixelSize: 16
-                        color: "black"
-                        palette.base: "white"
-                        onEditingFinished: {
-                             model.examples = text.split("\n")
+                        implicitHeight: colLayout.implicitHeight
+                        
+                        required property int index
+                        property int extIndex: index
+
+                        ColumnLayout {
+                            id: colLayout
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            spacing: 8
+
+                            // POS Row
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: 6
+                                Text { text: "POS:"; color: "#c7d1e0"; font.pixelSize: 18; Layout.preferredWidth: 50 }
+                                
+                                Repeater {
+                                    model: posTags
+                                    Button {
+                                        text: modelData
+                                        font.pixelSize: 18
+                                        checkable: true
+                                        checked: detailsList[extIndex].pos.indexOf(modelData) >= 0
+                                        palette.button: checked ? "#8c52bf" : "#404040"
+                                        palette.buttonText: "white"
+                                        onClicked: {
+                                            var p = detailsList[extIndex].pos
+                                            var i = p.indexOf(modelData)
+                                            if (i >= 0 && !checked) p.splice(i, 1)
+                                            else if (i < 0 && checked) p.push(modelData)
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Meaning Row
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: 6
+                                TextField {
+                                    text: detailsList[extIndex].meaning
+                                    placeholderText: "Meaning"
+                                    font.pixelSize: 18
+                                    Layout.fillWidth: true
+                                    onTextChanged: detailsList[extIndex].meaning = text
+                                }
+                                Button {
+                                    text: "x"
+                                    font.pixelSize: 18
+                                    Layout.preferredWidth: 42
+                                    palette.button: "#cc4c4c"
+                                    palette.buttonText: "white"
+                                    onClicked: {
+                                        detailsList.splice(extIndex, 1)
+                                        detailsRepeater.model = 0
+                                        detailsRepeater.model = detailsList.length
+                                    }
+                                }
+                            }
+
+                            // Examples Box
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                Layout.leftMargin: 24
+                                spacing: 6
+
+                                Repeater {
+                                    id: examplesRepeater
+                                    model: detailsList[extIndex].examples.length
+
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 6
+                                        TextField {
+                                            text: detailsList[extIndex].examples[model.index]
+                                            placeholderText: "Example"
+                                            font.pixelSize: 16
+                                            Layout.fillWidth: true
+                                            onTextChanged: detailsList[extIndex].examples[model.index] = text
+                                        }
+                                        Button {
+                                            text: "x"
+                                            font.pixelSize: 18
+                                            Layout.preferredWidth: 42
+                                            palette.button: "#cc4c4c"
+                                            palette.buttonText: "white"
+                                            onClicked: {
+                                                detailsList[extIndex].examples.splice(model.index, 1)
+                                                examplesRepeater.model = 0
+                                                examplesRepeater.model = detailsList[extIndex].examples.length
+                                            }
+                                        }
+                                    }
+                                }
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    Button {
+                                        text: "+ Example"
+                                        font.pixelSize: 18
+                                        palette.buttonText: "white"
+                                        palette.button: "#3385e6"
+                                        Layout.preferredWidth: 200
+                                        onClicked: {
+                                            detailsList[extIndex].examples.push("")
+                                            examplesRepeater.model = 0
+                                            examplesRepeater.model = detailsList[extIndex].examples.length
+                                        }
+                                    }
+                                    Item { Layout.fillWidth: true }
+                                }
+                            }
                         }
                     }
-
-                    Button {
-                        text: "Remove Meaning"
-                        palette.button: "#552222"
-                        palette.buttonText: "white"
-                        onClicked: detailsModel.remove(index)
-                    }
                 }
             }
         }
-        
-        Button {
-            text: "+ Add Meaning"
-            Layout.fillWidth: true
-            onClicked: detailsModel.append({ "meaning": "", "examples": [], "pos": [] })
-        }
 
+        // --- Footer Buttons ---
         RowLayout {
-            Layout.alignment: Qt.AlignRight
-            spacing: 10
-            
+            Layout.fillWidth: true
+            Layout.preferredHeight: 70
+            spacing: 8
+
             Button {
-                text: "Cancel"
-                onClicked: root.close()
+                text: "+ Meaning"
+                font.pixelSize: 20
+                palette.buttonText: "white"
+                palette.button: "#3385e6"
+                Layout.fillWidth: true; Layout.fillHeight: true
+                onClicked: {
+                    detailsList.push({"meaning": "", "examples": [""], "pos": []})
+                    detailsRepeater.model = 0
+                    detailsRepeater.model = detailsList.length
+                }
             }
-            
             Button {
                 text: "Save"
-                palette.button: "#225522"
+                font.pixelSize: 20
                 palette.buttonText: "white"
+                palette.button: "#40a661"
+                Layout.fillWidth: true; Layout.fillHeight: true
                 onClicked: {
-                    // Collect data
-                    var finalDetails = []
-                    for(var i=0; i<detailsModel.count; i++) {
-                        var item = detailsModel.get(i)
-                        // Convert ListModel item to JS object
-                        var exArr = []
-                        if (item.examples && item.examples.count) {/*Kivy logic*/} // simplify: use split above
-                        // Actually ListModel items are a bit tricky with arrays. 
-                        // Simplification: We trust the bindings or re-read
-                        finalDetails.push({
-                            "meaning": item.meaning,
-                            "examples": (typeof item.examples === 'string') ? item.examples.split("\n") : item.examples, // fallback
-                            "pos": item.pos
-                        })
-                    }
-                    
-                    app.updateWordDetails(root.targetWord, finalDetails, ipaField.text)
+                    app.updateWordDetails(wordToEdit, detailsList, ipaField.text)
+                    // TODO string-based tongue twister sets, but skipping for now
                     root.close()
-                    root.saved()
                 }
+            }
+            Button {
+                text: "Back"
+                font.pixelSize: 20
+                palette.buttonText: "white"
+                palette.button: "#808080"
+                Layout.fillWidth: true; Layout.fillHeight: true
+                // TODO: Learn mode Next/Back logic
+            }
+            Button {
+                text: "Next"
+                font.pixelSize: 20
+                palette.buttonText: "white"
+                palette.button: "#5cc27d"
+                Layout.fillWidth: true; Layout.fillHeight: true
+                onClicked: {
+                    app.updateWordDetails(wordToEdit, detailsList, ipaField.text)
+                    app.nextLearnWord()
+                    wordToEdit = app.state.learnCurrentWord
+                    if (!wordToEdit) root.close()
+                    else {
+                        // re-trigger onOpened manually
+                        var d = app.state.wordDetails[wordToEdit.toLowerCase()]
+                        if (d) {
+                            var temp = []
+                            for (var i = 0; i < d.length; i++) temp.push({"meaning": d[i].meaning, "examples": d[i].examples.length > 0 ? d[i].examples : [""], "pos": d[i].pos || []})
+                            detailsList = temp
+                        } else {
+                            detailsList = [{"meaning": "", "examples": [""], "pos": []}]
+                        }
+                        ipaField.text = app.state.wordIpa[wordToEdit.toLowerCase()] || ""
+                        wordInput.text = wordToEdit
+                        detailsRepeater.model = 0
+                        detailsRepeater.model = detailsList.length
+                    }
+                }
+            }
+            Button {
+                text: "Close"
+                font.pixelSize: 20
+                palette.buttonText: "white"
+                palette.button: "#808080"
+                Layout.fillWidth: true; Layout.fillHeight: true
+                onClicked: root.close()
             }
         }
     }

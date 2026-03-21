@@ -28,6 +28,19 @@ public:
     Q_INVOKABLE void removeCurrentWord();
     Q_INVOKABLE void save();
 
+    // Learn Mode
+    Q_INVOKABLE void nextLearnWord();
+    Q_INVOKABLE void markLearnWordKnown();
+    Q_INVOKABLE void removeLearnWord();
+
+    // Review Mode
+    Q_INVOKABLE int getReviewMatchingCount(const QString &startStr, const QString &endStr, bool twisterOnly);
+    Q_INVOKABLE void startReview(const QString &startStr, const QString &endStr, bool twisterOnly);
+    Q_INVOKABLE void nextReviewWord();
+    Q_INVOKABLE void markReviewWordKnown();
+
+
+
     // Stats
     Q_INVOKABLE QVariantMap getDashboardStats() const;
     
@@ -46,6 +59,13 @@ private:
     
     QStringList m_eligiblePool;
     bool m_eligibleDirty = true;
+    
+    int m_learnIdx = 0;
+    void updateLearnWord();
+
+    QStringList m_reviewPool;
+    int m_reviewIdx = 0;
 };
+
 
 #endif // APPCONTROLLER_H

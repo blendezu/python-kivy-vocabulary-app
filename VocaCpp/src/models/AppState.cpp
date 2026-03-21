@@ -17,9 +17,41 @@ void AppState::setCurrentWord(const QString &word)
     emit currentWordChanged();
 }
 
+QString AppState::learnCurrentWord() const
+{
+    return m_learnCurrentWord;
+}
+
+void AppState::setLearnCurrentWord(const QString &word)
+{
+    if (m_learnCurrentWord == word)
+        return;
+    m_learnCurrentWord = word;
+    emit learnCurrentWordChanged();
+}
+
+QString AppState::reviewCurrentWord() const
+{
+    return m_reviewCurrentWord;
+}
+
+void AppState::setReviewCurrentWord(const QString &word)
+{
+    if (m_reviewCurrentWord == word)
+        return;
+    m_reviewCurrentWord = word;
+    emit reviewCurrentWordChanged();
+}
+
 int AppState::remainingCount() const
+
 {
     return m_remainingCount;
+}
+
+int AppState::reviewRemainingCount() const
+{
+    return m_reviewRemainingCount;
 }
 
 void AppState::setRemainingCount(int count)
@@ -29,6 +61,15 @@ void AppState::setRemainingCount(int count)
     m_remainingCount = count;
     emit remainingCountChanged();
 }
+
+void AppState::setReviewRemainingCount(int count)
+{
+    if (m_reviewRemainingCount == count)
+        return;
+    m_reviewRemainingCount = count;
+    emit reviewRemainingCountChanged();
+}
+
 
 QString AppState::learnOrderMode() const
 {
@@ -68,6 +109,20 @@ void AppState::setNewSequence(const QStringList &seq)
     m_newSequence = seq;
     emit newSequenceChanged();
 }
+
+QStringList AppState::removedSequence() const
+{
+    return m_removedSequence;
+}
+
+void AppState::setRemovedSequence(const QStringList &seq)
+{
+    if (m_removedSequence == seq)
+        return;
+    m_removedSequence = seq;
+    emit removedSequenceChanged();
+}
+
 
 QVariantList AppState::currentWordDetails() const
 {

@@ -226,10 +226,16 @@ QVariantMap AppController::getDashboardStats() const
     int yearCount = 0;
     
     // QDate::weekNumber() helps but let's do simple day diffs for "This Week" (Mon-Sun)
-    // Python code: week_start = today - timedelta(days=today.weekday()) -> Monday
     QDate weekStart = today.addDays(-(today.dayOfWeek() - 1));
     QDate monthStart(today.year(), today.month(), 1);
     QDate yearStart(today.year(), 1, 1);
+    
+    QVariantList last7Dates;
+    QVariantList last7Counts;
+    QMap<QDate, int> dailyCounts;
+    for (int i = 6; i >= 0; --i) {
+        dailyCounts[today.addDays(-i)] = 0;
+    }
     
     auto it = m_state->learnedLog.constBegin();
     while (it != m_state->learnedLog.constEnd()) {
@@ -240,14 +246,26 @@ QVariantMap AppController::getDashboardStats() const
             if (d >= weekStart && d <= today) weekCount++;
             if (d >= monthStart && d <= today) monthCount++;
             if (d >= yearStart && d <= today) yearCount++;
+            
+            if (dailyCounts.contains(d)) {
+                dailyCounts[d]++;
+            }
         }
         ++it;
+    }
+    
+    for (int i = 6; i >= 0; --i) {
+        QDate d = today.addDays(-i);
+        last7Dates.append(d.toString("dd/MM"));
+        last7Counts.append(dailyCounts[d]);
     }
     
     stats["today"] = dayCount;
     stats["week"] = weekCount;
     stats["month"] = monthCount;
     stats["year"] = yearCount;
+    stats["last7Dates"] = last7Dates;
+    stats["last7Counts"] = last7Counts;
     
     return stats;
 }
@@ -283,3 +301,220 @@ void AppController::updateWordDetails(const QString &word, const QVariantList &d
     
     save();
 }
+
+void AppController::updateLearnWord()
+{
+    QStringList newSeq = m_state->newSequence();
+    if (newSeq.isEmpty()) {
+        m_state->setLearnCurrentWord("");
+        return;
+    }
+    
+    QString order = m_state->learnOrderMode();
+    if (order == "Random") {
+        m_state->setLearnCurrentWord(newSeq[QRandomGenerator::global()->bounded(newSeq.size())]);
+    } else {
+        if (m_learnIdx >= newSeq.size()) m_learnIdx = 0;
+        if (m_learnIdx < 0) m_learnIdx = newSeq.size() - 1;
+        
+        if (order == "Newest") {
+            // Assuming sequence appended at end -> newest is at the end.
+            m_state->setLearnCurrentWord(newSeq[newSeq.size() - 1 - m_learnIdx]);
+        } else {
+            m_state->setLearnCurrentWord(newSeq[m_learnIdx]);
+        }
+    }
+}
+
+void AppController::nextLearnWord()
+{
+    QStringList newSeq = m_state->newSequence();
+    if (newSeq.isEmpty()) {
+        m_state->setLearnCurrentWord("");
+        return;
+    }
+    
+    QString order = m_state->learnOrderMode();
+    if (order != "Random") {
+        m_learnIdx++;
+        if (m_learnIdx >= newSeq.size()) m_learnIdx = 0;
+    }
+    updateLearnWord();
+}
+
+void AppController::markLearnWordKnown()
+{
+    QString w = m_state->learnCurrentWord();
+    if (w.isEmpty()) return;
+    
+    // Add to known, remove from new
+    m_state->knownWords.insert(w);
+    m_state->newWords.remove(w);
+    
+    QStringList kSeq = m_state->knownSequence();
+    if (!kSeq.contains(w)) {
+        kSeq.append(w);
+        m_state->setKnownSequence(kSeq);
+    }
+    
+    QStringList nSeq = m_state->newSequence();
+    nSeq.removeAll(w);
+    m_state->setNewSequence(nSeq);
+    
+    // Log as learned today
+    m_state->learnedLog.insert(w.toLower(), QDate::currentDate().toString(Qt::ISODate));
+    if (!m_state->learnedSession.contains(w.toLower())) {
+        m_state->learnedSession.append(w.toLower());
+    }
+    
+    m_eligibleDirty = true;
+    save();
+    
+    // In Python, "Learned" might pop up meaning editor or just move next. 
+    // Button Learned calls `_mark_known_no_advance` then `_learn_next_word`.
+    nextLearnWord();
+}
+
+void AppController::removeLearnWord()
+{
+    QString w = m_state->learnCurrentWord();
+    if (w.isEmpty()) return;
+    
+    m_state->removedWords.insert(w.toLower());
+    m_state->newWords.remove(w);
+    
+    QStringList rSeq = m_state->removedSequence();
+    if (!rSeq.contains(w.toLower())) { // Wait, Python removed list is mixed casing, but usually word is kept. 
+        rSeq.append(w);
+        m_state->setRemovedSequence(rSeq);
+    }
+    
+    QStringList nSeq = m_state->newSequence();
+    nSeq.removeAll(w);
+    m_state->setNewSequence(nSeq);
+    
+    m_eligibleDirty = true;
+    save();
+    nextLearnWord();
+}
+
+// Helper to parse "DD/MM" or "YYYY-MM-DD" "Today" "-1" etc.
+static QDate parseReviewDate(const QString &str) {
+    if (str.isEmpty()) return QDate();
+    if (str.toLower() == "today" || str == "0") return QDate::currentDate();
+    
+    bool isNum = false;
+    int offset = str.toInt(&isNum);
+    if (isNum && offset <= 0) {
+        return QDate::currentDate().addDays(offset);
+    }
+    
+    // Try YYYY-MM-DD
+    QDate d = QDate::fromString(str, Qt::ISODate);
+    if (d.isValid()) return d;
+    
+    // Try DD/MM
+    QStringList parts = str.split("/");
+    if (parts.size() == 2) {
+        int day = parts[0].toInt();
+        int month = parts[1].toInt();
+        return QDate(QDate::currentDate().year(), month, day);
+    }
+    return QDate();
+}
+
+int AppController::getReviewMatchingCount(const QString &startStr, const QString &endStr, bool twisterOnly)
+{
+    QDate st = parseReviewDate(startStr);
+    QDate en = parseReviewDate(endStr);
+    
+    if (!st.isValid() && !en.isValid()) return 0;
+    if (!en.isValid()) en = st;
+    if (!st.isValid()) st = en;
+    if (st > en) std::swap(st, en);
+
+    int count = 0;
+    auto it = m_state->learnedLog.constBegin();
+    while (it != m_state->learnedLog.constEnd()) {
+        QDate d = QDate::fromString(it.value(), Qt::ISODate);
+        if (d.isValid() && d >= st && d <= en) {
+            // Check tongue twister ?
+            // In AppState we don't track twister explicitly yet, assuming all match if twisterOnly = false
+            bool matchTwister = true; // TODO
+            if (!twisterOnly || matchTwister) {
+                count++;
+            }
+        }
+        ++it;
+    }
+    return count;
+}
+
+void AppController::startReview(const QString &startStr, const QString &endStr, bool twisterOnly)
+{
+    m_reviewPool.clear();
+    m_reviewIdx = 0;
+    
+    QDate st = parseReviewDate(startStr);
+    QDate en = parseReviewDate(endStr);
+    
+    if (!st.isValid() && !en.isValid()) {
+        m_state->setReviewCurrentWord("");
+        return;
+    }
+    if (!en.isValid()) en = st;
+    if (!st.isValid()) st = en;
+    if (st > en) std::swap(st, en);
+
+    auto it = m_state->learnedLog.constBegin();
+    while (it != m_state->learnedLog.constEnd()) {
+        QDate d = QDate::fromString(it.value(), Qt::ISODate);
+        if (d.isValid() && d >= st && d <= en) {
+            bool matchTwister = true; // TODO
+            if (!twisterOnly || matchTwister) {
+                m_reviewPool.append(it.key()); // already lowercase
+            }
+        }
+        ++it;
+    }
+    
+    m_state->setReviewRemainingCount(m_reviewPool.size());
+    
+    if (m_reviewPool.isEmpty()) {
+        m_state->setReviewCurrentWord("");
+    } else {
+        // Find original casing if possible, or just use lower
+        m_state->setReviewCurrentWord(m_reviewPool[0]);
+    }
+}
+
+void AppController::nextReviewWord()
+{
+    if (m_reviewPool.isEmpty()) {
+        m_state->setReviewCurrentWord("");
+        return;
+    }
+    m_reviewIdx++;
+    if (m_reviewIdx >= m_reviewPool.size()) {
+        m_state->setReviewCurrentWord("");
+    } else {
+        m_state->setReviewCurrentWord(m_reviewPool[m_reviewIdx]);
+    }
+    m_state->setReviewRemainingCount(m_reviewPool.size() - m_reviewIdx);
+}
+
+void AppController::markReviewWordKnown()
+{
+    if (m_reviewPool.isEmpty() || m_reviewIdx >= m_reviewPool.size()) return;
+    
+    // In Review Mode, "Correct" just confirms they know it.
+    // In Python app it might extend the interval in DB.
+    // For Voca basic: it's just marking as learned again today? Or no-op.
+    // We'll just update history or next.
+    QString w = m_reviewPool[m_reviewIdx];
+    m_state->learnedSession.append(w); // ensure it's in session
+    
+    nextReviewWord();
+}
+
+
