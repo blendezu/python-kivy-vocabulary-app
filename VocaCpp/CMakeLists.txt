@@ -45,4 +45,5 @@ qt_add_qml_module(VocaCpp
         src/ui/WordEditPopup.qml
         src/ui/LearnPopup.qml
         src/ui/ReviewPopup.qml
+        src/ui/CorrectWordPopup.qml
 )

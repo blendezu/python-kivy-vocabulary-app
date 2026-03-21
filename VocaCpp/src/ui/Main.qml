@@ -184,10 +184,11 @@ ApplicationWindow {
                 Layout.preferredWidth: 1
                 Layout.fillHeight: true
                 font.pixelSize: 24
-                bgColor: "#3385e6"
+                bgColor: "#3399e6"
                 onClicked: {
-                    // Correct typically marks known or advances
-                    app.requestNextWord()
+                    if (appState.currentWord !== "") {
+                        correctWordPopup.openForWord(appState.currentWord);
+                    }
                 }
             }
             ColorButton {
@@ -213,7 +214,7 @@ ApplicationWindow {
             ColumnLayout {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                Layout.preferredWidth: 300
+                Layout.preferredWidth: 100
                 spacing: 4
                 Rectangle {
                     Layout.fillWidth: true
@@ -262,14 +263,15 @@ ApplicationWindow {
 
             // Transfer Buttons Middle Column
             ColumnLayout {
-                Layout.preferredWidth: 50
+                Layout.preferredWidth: 35
+                Layout.maximumWidth: 35
                 Layout.fillHeight: true
                 spacing: 8
                 Item { Layout.fillHeight: true }
                 ColorButton {
                     text: ">>"
                     Layout.fillWidth: true
-                    height: 50
+                    Layout.preferredHeight: 35
                     bgColor: window.selectedWord !== "" && window.selectedOrigin === "known" ? "#333333" : "#1a1a1a"
                     enabled: window.selectedWord !== "" && window.selectedOrigin === "known"
                     onClicked: {
@@ -281,7 +283,7 @@ ApplicationWindow {
                 ColorButton {
                     text: "<<"
                     Layout.fillWidth: true
-                    height: 50
+                    Layout.preferredHeight: 35
                     bgColor: window.selectedWord !== "" && window.selectedOrigin === "new" ? "#333333" : "#1a1a1a"
                     enabled: window.selectedWord !== "" && window.selectedOrigin === "new"
                     onClicked: {
@@ -293,7 +295,7 @@ ApplicationWindow {
                 ColorButton {
                     text: "X"
                     Layout.fillWidth: true
-                    height: 50
+                    Layout.preferredHeight: 35
                     bgColor: window.selectedWord !== "" && (window.selectedOrigin === "known" || window.selectedOrigin === "new") ? "#aa3333" : "#4a1919"
                     enabled: window.selectedWord !== "" && (window.selectedOrigin === "known" || window.selectedOrigin === "new")
                     onClicked: {
@@ -309,7 +311,7 @@ ApplicationWindow {
             ColumnLayout {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                Layout.preferredWidth: 300
+                Layout.preferredWidth: 100
                 spacing: 4
                 Rectangle {
                     Layout.fillWidth: true
@@ -360,7 +362,7 @@ ApplicationWindow {
             ColumnLayout {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                Layout.preferredWidth: 200
+                Layout.preferredWidth: 100
                 spacing: 4
                 Rectangle {
                     Layout.fillWidth: true
@@ -422,4 +424,5 @@ ApplicationWindow {
     LearnPopup { id: learnPopup }
     ReviewPopup { id: reviewPopup }
     WordEditPopup { id: editPopup }
+    CorrectWordPopup { id: correctWordPopup }
 }

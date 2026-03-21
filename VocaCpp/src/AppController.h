@@ -33,6 +33,7 @@ public:
     Q_INVOKABLE void moveWordToNew(const QString &word);
     Q_INVOKABLE void removeWord(const QString &word);
     Q_INVOKABLE void restoreRemovedWord(const QString &word);
+    Q_INVOKABLE void correctWord(const QString &oldWord, const QString &newWord);
 
     // Learn Mode
     Q_INVOKABLE void nextLearnWord();
@@ -56,7 +57,6 @@ public:
 private:
     void rebuildEligiblePool();
     QString getRandomWord();
-    void updateLists(); // Simplified list maintenance
 
     AppState *m_state;
     ProgressStore *m_store;

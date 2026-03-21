@@ -289,6 +289,89 @@ void AppController::restoreRemovedWord(const QString &word)
     m_store->saveAsync();
 }
 
+void AppController::correctWord(const QString &oldWord, const QString &newWord)
+{
+    if (oldWord.isEmpty() || newWord.isEmpty() || oldWord == newWord) return;
+    
+    QString oldLower = oldWord.toLower();
+    QString newLower = newWord.toLower();
+
+    if (m_state->removedWords.contains(newLower)) {
+        return; // Target word is already removed
+    }
+
+    // Replace in vocabulary list
+    int vIndex = m_state->vocabulary.indexOf(oldWord);
+    if (vIndex != -1) {
+        m_state->vocabulary.removeAt(vIndex);
+    }
+    if (!m_state->vocabulary.contains(newWord)) {
+        m_state->vocabulary.append(newWord);
+        m_state->vocabulary.sort(Qt::CaseInsensitive);
+    }
+
+    // Word Sets
+    if (m_state->knownWords.remove(oldWord)) {
+        m_state->knownWords.insert(newWord);
+    }
+    if (m_state->newWords.remove(oldWord)) {
+        if (!m_state->knownWords.contains(newWord)) {
+            m_state->newWords.insert(newWord);
+        }
+    }
+    
+    // Internal data maps
+    if (m_state->wordDetails.contains(oldLower)) {
+        auto details = m_state->wordDetails.take(oldLower);
+        if (!m_state->wordDetails.contains(newLower)) {
+            m_state->wordDetails.insert(newLower, details);
+        } else {
+            m_state->wordDetails[newLower].append(details);
+        }
+    }
+    if (m_state->wordIpa.contains(oldLower)) {
+        auto ipa = m_state->wordIpa.take(oldLower);
+        if (!m_state->wordIpa.contains(newLower)) {
+            m_state->wordIpa.insert(newLower, ipa);
+        }
+    }
+    if (m_state->learnedLog.contains(oldLower)) {
+        auto date = m_state->learnedLog.take(oldLower);
+        if (!m_state->learnedLog.contains(newLower)) {
+            m_state->learnedLog.insert(newLower, date);
+        }
+    }
+
+    // Update the UI sequences
+    QStringList kSeq = m_state->knownSequence();
+    if (kSeq.contains(oldWord)) {
+        kSeq.replace(kSeq.indexOf(oldWord), newWord);
+        kSeq.sort(Qt::CaseInsensitive);
+        m_state->setKnownSequence(kSeq);
+    }
+
+    QStringList nSeq = m_state->newSequence();
+    if (nSeq.contains(oldWord)) {
+        nSeq.replace(nSeq.indexOf(oldWord), newWord);
+        nSeq.sort(Qt::CaseInsensitive);
+        m_state->setNewSequence(nSeq);
+    }
+
+    QStringList rSeq = m_state->removedSequence();
+    if (rSeq.contains(oldWord)) {
+        rSeq.replace(rSeq.indexOf(oldWord), newWord);
+        m_state->setRemovedSequence(rSeq);
+    }
+
+    if (m_state->currentWord() == oldWord) {
+        m_state->setCurrentWord(newWord);
+    }
+    
+    emit m_state->vocabularyCountChanged();
+    m_eligibleDirty = true;
+    m_store->saveAsync();
+}
+
 void AppController::save()
 {
     m_store->saveSync();
