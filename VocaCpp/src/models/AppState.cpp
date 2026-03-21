@@ -54,6 +54,11 @@ int AppState::reviewRemainingCount() const
     return m_reviewRemainingCount;
 }
 
+int AppState::vocabularyCount() const
+{
+    return vocabulary.size();
+}
+
 void AppState::setRemainingCount(int count)
 {
     if (m_remainingCount == count)

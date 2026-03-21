@@ -14,6 +14,26 @@ ApplicationWindow {
 
     property var appState: app.state
 
+    component ColorButton : Button {
+        id: control
+        property color bgColor: "#3385e6"
+        property color textColor: "#f2faff"
+        
+        contentItem: Text {
+            text: control.text
+            font: control.font
+            color: control.textColor
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+        }
+        background: Rectangle {
+            color: control.down ? Qt.darker(control.bgColor, 1.2) : (control.hovered ? Qt.lighter(control.bgColor, 1.1) : control.bgColor)
+            radius: 8
+            border.color: Qt.lighter(control.bgColor, 1.2)
+            border.width: control.hovered ? 1 : 0
+        }
+    }
+
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 16
@@ -25,67 +45,60 @@ ApplicationWindow {
             Layout.preferredHeight: 100
             spacing: 8
 
-            Button {
+            ColorButton {
                 text: "Add new words"
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 font.pixelSize: 18
-                palette.buttonText: "#f2faff"
-                palette.button: "#1e232e" // surface
-                onClicked: {} // TODO: Add words popup
+                bgColor: "#242a36" 
+                onClicked: {} // TODO
             }
-            Button {
+            ColorButton {
                 text: "Check for new\nwords from text"
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 font.pixelSize: 18
-                palette.buttonText: "#f2faff"
-                palette.button: "#3385e6" // primary
+                bgColor: "#3385e6" 
                 onClicked: {} // TODO
             }
-            Button {
+            ColorButton {
                 text: "Expressions"
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 font.pixelSize: 18
-                palette.buttonText: "#f2faff"
-                palette.button: "#8c52bf" // accent
+                bgColor: "#8c52bf" 
                 onClicked: {} // TODO
             }
-            Button {
+            ColorButton {
                 text: "Learn"
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 font.pixelSize: 18
-                palette.buttonText: "#f2faff"
-                palette.button: "#eda640" // warning (yellow/orange)
+                bgColor: "#e6ad3e" 
                 onClicked: learnPopup.open()
             }
-            Button {
+            ColorButton {
                 text: "Learned words"
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 font.pixelSize: 18
-                palette.buttonText: "#f2faff"
-                palette.button: "#1a5900" // darkGreen
+                bgColor: "#1a5900" 
                 onClicked: {} // TODO
             }
-            Button {
+            ColorButton {
                 text: "Review"
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 font.pixelSize: 18
-                palette.buttonText: "#f2faff"
-                palette.button: "#cc4c4c" // red
+                bgColor: "#cc4c4c" 
                 onClicked: reviewPopup.open()
             }
-            Button {
+            ColorButton {
                 text: "Dashboard"
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 font.pixelSize: 18
-                palette.buttonText: "#f2faff"
-                palette.button: "#40a661" // success (green)
+                bgColor: "#40a661" 
                 onClicked: dashboardPopup.open()
             }
         }
@@ -96,10 +109,10 @@ ApplicationWindow {
             Layout.fillHeight: true
             spacing: 10
 
-            Item { Layout.fillHeight: true }
+            Item { Layout.fillHeight: true; Layout.minimumHeight: 20 }
 
             Text {
-                text: appState.currentWord ? appState.currentWord : "Done!"
+                text: appState.currentWord !== "" ? appState.currentWord : "Done!"
                 color: "#f2faff"
                 font.pixelSize: 64
                 font.bold: false
@@ -122,11 +135,11 @@ ApplicationWindow {
                 wrapMode: Text.WordWrap
                 horizontalAlignment: Text.AlignHCenter
                 Layout.alignment: Qt.AlignHCenter
-                Layout.preferredWidth: 800
+                Layout.preferredWidth: window.width * 0.8
                 Layout.topMargin: 20
             }
 
-            Item { Layout.fillHeight: true }
+            Item { Layout.fillHeight: true; Layout.minimumHeight: 20 }
         }
 
         // --- Middle 2x2 Buttons ---
@@ -137,44 +150,41 @@ ApplicationWindow {
             rowSpacing: 12
             columnSpacing: 12
 
-            Button {
+            ColorButton {
                 text: "Remove this word"
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 font.pixelSize: 24
-                palette.buttonText: "#f2faff"
-                palette.button: "#cc4c4c"
+                bgColor: "#cc4c4c"
                 onClicked: app.removeCurrentWord()
             }
-            Button {
+            ColorButton {
                 text: "Next word"
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 font.pixelSize: 24
-                palette.buttonText: "#f2faff"
-                palette.button: "#40a661"
+                bgColor: "#5cc27d"
                 onClicked: app.requestNextWord()
             }
-            Button {
+            ColorButton {
                 text: "Correct"
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 font.pixelSize: 24
-                palette.buttonText: "#f2faff"
-                palette.button: "#3385e6"
+                bgColor: "#3385e6"
                 onClicked: {
-                    // Logic for Correct
+                    // Correct typically marks known or advances
+                    app.requestNextWord()
                 }
             }
-            Button {
+            ColorButton {
                 text: "New word"
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 font.pixelSize: 24
-                palette.buttonText: "#f2faff"
-                palette.button: "#eda640"
+                bgColor: "#eda640"
                 onClicked: {
-                    if (appState.currentWord) app.markWordNew(appState.currentWord)
+                    if (appState.currentWord !== "") app.markWordNew(appState.currentWord)
                 }
             }
         }
@@ -182,40 +192,46 @@ ApplicationWindow {
         // --- Bottom 3 list columns ---
         RowLayout {
             Layout.fillWidth: true
-            Layout.preferredHeight: 300
+            Layout.preferredHeight: 250 // Give it explicit height so it doesn't squash to 0
             spacing: 12
 
             // Known Words
             ColumnLayout {
                 Layout.fillWidth: true
+                Layout.fillHeight: true
+                Layout.preferredWidth: 300
                 spacing: 4
                 Rectangle {
                     Layout.fillWidth: true
-                    height: 40
-                    color: "#005900" // darker green
+                    height: 35
+                    color: "#006600" // darker green
+                    radius: 4
                     Text {
                         anchors.centerIn: parent
-                        text: "Known words (" + appState.knownSequence.length + ")"
+                        text: "Known words (" + appState.knownSequence.length + "/" + appState.vocabularyCount + ")"
                         color: "white"
-                        font.pixelSize: 16
+                        font.pixelSize: 14
+                        font.bold: true
                     }
                 }
-                ScrollView {
+                Rectangle {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
+                    color: "transparent"
+                    border.color: "#333333"
                     clip: true
                     ListView {
+                        anchors.fill: parent
                         model: appState.knownSequence
                         delegate: Rectangle {
                             width: ListView.view.width
-                            height: 40
-                            color: "#2e2e2e"
-                            border.color: "#1e1e1e"
+                            height: 35
+                            color: index % 2 === 0 ? "#1a1a1a" : "#222222"
                             Text {
                                 anchors.centerIn: parent
                                 text: modelData
                                 color: "#f2faff"
-                                font.pixelSize: 16
+                                font.pixelSize: 14
                             }
                         }
                     }
@@ -224,27 +240,27 @@ ApplicationWindow {
 
             // Transfer Buttons Middle Column
             ColumnLayout {
-                Layout.preferredWidth: 40
+                Layout.preferredWidth: 50
+                Layout.fillHeight: true
                 spacing: 8
                 Item { Layout.fillHeight: true }
-                Button {
+                ColorButton {
                     text: ">>"
                     Layout.fillWidth: true
-                    height: 40
-                    palette.button: "#2e2e2e"
+                    height: 50
+                    bgColor: "#2e2e2e"
                 }
-                Button {
+                ColorButton {
                     text: "<<"
                     Layout.fillWidth: true
-                    height: 40
-                    palette.button: "#2e2e2e"
+                    height: 50
+                    bgColor: "#2e2e2e"
                 }
-                Button {
+                ColorButton {
                     text: "X"
                     Layout.fillWidth: true
-                    height: 40
-                    palette.buttonText: "white"
-                    palette.button: "#cc4c4c"
+                    height: 50
+                    bgColor: "#4a1919"
                 }
                 Item { Layout.fillHeight: true }
             }
@@ -252,34 +268,40 @@ ApplicationWindow {
             // New Words
             ColumnLayout {
                 Layout.fillWidth: true
+                Layout.fillHeight: true
+                Layout.preferredWidth: 300
                 spacing: 4
                 Rectangle {
                     Layout.fillWidth: true
-                    height: 40
-                    color: "#734700" // dark orange
+                    height: 35
+                    color: "#b37700" // dirty yellow/brown
+                    radius: 4
                     Text {
                         anchors.centerIn: parent
-                        text: "New words (" + appState.newSequence.length + ")"
+                        text: "New words (" + appState.newSequence.length + "/" + appState.vocabularyCount + ")"
                         color: "white"
-                        font.pixelSize: 16
+                        font.pixelSize: 14
+                        font.bold: true
                     }
                 }
-                ScrollView {
+                Rectangle {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
+                    color: "transparent"
+                    border.color: "#333333"
                     clip: true
                     ListView {
+                        anchors.fill: parent
                         model: appState.newSequence
                         delegate: Rectangle {
                             width: ListView.view.width
-                            height: 40
-                            color: "#332e1f"
-                            border.color: "#1e1e1e"
+                            height: 35
+                            color: index % 2 === 0 ? "#26221a" : "#2e2a22"
                             Text {
                                 anchors.centerIn: parent
                                 text: modelData
                                 color: "#f2faff"
-                                font.pixelSize: 16
+                                font.pixelSize: 14
                             }
                         }
                     }
@@ -289,34 +311,40 @@ ApplicationWindow {
             // Removed Words
             ColumnLayout {
                 Layout.fillWidth: true
+                Layout.fillHeight: true
+                Layout.preferredWidth: 200
                 spacing: 4
                 Rectangle {
                     Layout.fillWidth: true
-                    height: 40
-                    color: "#400000" // very dark red
+                    height: 35
+                    color: "#660000" // dark red
+                    radius: 4
                     Text {
                         anchors.centerIn: parent
                         text: "Removed words (" + appState.removedSequence.length + ")"
                         color: "white"
-                        font.pixelSize: 16
+                        font.pixelSize: 14
+                        font.bold: true
                     }
                 }
-                ScrollView {
+                Rectangle {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
+                    color: "transparent"
+                    border.color: "#333333"
                     clip: true
                     ListView {
+                        anchors.fill: parent
                         model: appState.removedSequence
                         delegate: Rectangle {
                             width: ListView.view.width
-                            height: 40
-                            color: "#290d12"
-                            border.color: "#1e1e1e"
+                            height: 35
+                            color: index % 2 === 0 ? "#261a1a" : "#2e2222"
                             Text {
                                 anchors.centerIn: parent
                                 text: modelData
                                 color: "#f2faff"
-                                font.pixelSize: 16
+                                font.pixelSize: 14
                             }
                         }
                     }

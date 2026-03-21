@@ -35,7 +35,7 @@ class AppState : public QObject
     Q_PROPERTY(QString reviewCurrentWord READ reviewCurrentWord WRITE setReviewCurrentWord NOTIFY reviewCurrentWordChanged)
     Q_PROPERTY(int remainingCount READ remainingCount WRITE setRemainingCount NOTIFY remainingCountChanged)
     Q_PROPERTY(int reviewRemainingCount READ reviewRemainingCount WRITE setReviewRemainingCount NOTIFY reviewRemainingCountChanged)
-
+    Q_PROPERTY(int vocabularyCount READ vocabularyCount NOTIFY vocabularyCountChanged)
 
     Q_PROPERTY(QString learnOrderMode READ learnOrderMode WRITE setLearnOrderMode NOTIFY learnOrderModeChanged)
     
@@ -58,7 +58,7 @@ public:
     QString reviewCurrentWord() const;
     int remainingCount() const;
     int reviewRemainingCount() const;
-
+    int vocabularyCount() const;
 
     QString learnOrderMode() const;
     QStringList knownSequence() const;
@@ -111,7 +111,7 @@ signals:
     void reviewCurrentWordChanged();
     void remainingCountChanged();
     void reviewRemainingCountChanged();
-
+    void vocabularyCountChanged();
 
     void learnOrderModeChanged();
     void knownSequenceChanged();
