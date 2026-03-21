@@ -67,20 +67,17 @@ Popup {
 
         Text {
             text: app.state.learnCurrentWord ? app.state.learnCurrentWord : "No new words left!"
-            color: "#f2faff"
+            color: app.state.learnCurrentWord ? "#f2faff" : "#c7d1e0"
             font.pixelSize: 64
             Layout.alignment: Qt.AlignHCenter
-        }
+            // Underline hint on hover to signal clickability
+            font.underline: wordHoverArea.containsMouse && app.state.learnCurrentWord
 
-        Text {
-            text: "<i>Tap the word to add meanings and examples.</i>"
-            color: "#c7d1e0"
-            font.pixelSize: 20
-            textFormat: Text.RichText
-            Layout.alignment: Qt.AlignHCenter
-            
             MouseArea {
+                id: wordHoverArea
                 anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: app.state.learnCurrentWord ? Qt.PointingHandCursor : Qt.ArrowCursor
                 onClicked: {
                     if (app.state.learnCurrentWord) {
                         editPopup.wordToEdit = app.state.learnCurrentWord
@@ -88,6 +85,14 @@ Popup {
                     }
                 }
             }
+        }
+
+        Text {
+            text: "<i>Click the word above to add meanings and examples.</i>"
+            color: "#60707f"
+            font.pixelSize: 16
+            textFormat: Text.RichText
+            Layout.alignment: Qt.AlignHCenter
         }
 
         Item { Layout.fillHeight: true; Layout.preferredHeight: 40 }
