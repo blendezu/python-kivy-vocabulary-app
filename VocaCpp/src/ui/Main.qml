@@ -126,7 +126,8 @@ ApplicationWindow {
                 color: "#f2faff"
                 font.pixelSize: 64
                 font.bold: false
-                Layout.alignment: Qt.AlignHCenter
+                Layout.fillWidth: true
+                horizontalAlignment: Text.AlignHCenter
             }
 
             Text {
@@ -134,7 +135,8 @@ ApplicationWindow {
                 color: "#c7d1e0"
                 font.pixelSize: 24
                 visible: true
-                Layout.alignment: Qt.AlignHCenter
+                Layout.fillWidth: true
+                horizontalAlignment: Text.AlignHCenter
                 Layout.topMargin: 20
             }
 
@@ -144,8 +146,9 @@ ApplicationWindow {
                 font.pixelSize: 14
                 wrapMode: Text.WordWrap
                 horizontalAlignment: Text.AlignHCenter
-                Layout.alignment: Qt.AlignHCenter
-                Layout.preferredWidth: window.width * 0.8
+                Layout.fillWidth: true
+                leftPadding: width * 0.1
+                rightPadding: width * 0.1
                 Layout.topMargin: 20
             }
 
