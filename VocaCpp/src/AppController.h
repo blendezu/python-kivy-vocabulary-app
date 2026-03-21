@@ -1,0 +1,51 @@
+#ifndef APPCONTROLLER_H
+#define APPCONTROLLER_H
+
+#include <QObject>
+#include <QRandomGenerator>
+#include "models/AppState.h"
+#include "persistence/ProgressStore.h"
+#include "services/TTSService.h"
+#include "services/STTService.h"
+
+class AppController : public QObject
+{
+    Q_OBJECT
+    Q_PROPERTY(AppState* state READ state CONSTANT)
+    Q_PROPERTY(TTSService* tts READ tts CONSTANT)
+    Q_PROPERTY(STTService* stt READ stt CONSTANT)
+
+public:
+    explicit AppController(QObject *parent = nullptr);
+
+    AppState* state() const;
+    TTSService* tts() const;
+    STTService* stt() const;
+
+    Q_INVOKABLE void requestNextWord();
+    Q_INVOKABLE void markWordKnown(const QString &word);
+    Q_INVOKABLE void markWordNew(const QString &word);
+    Q_INVOKABLE void removeCurrentWord();
+    Q_INVOKABLE void save();
+
+    // Stats
+    Q_INVOKABLE QVariantMap getDashboardStats() const;
+    
+    // Editor
+    Q_INVOKABLE void updateWordDetails(const QString &word, const QVariantList &details, const QString &ipa);
+
+private:
+    void rebuildEligiblePool();
+    QString getRandomWord();
+    void updateLists(); // Simplified list maintenance
+
+    AppState *m_state;
+    ProgressStore *m_store;
+    TTSService *m_tts;
+    STTService *m_stt;
+    
+    QStringList m_eligiblePool;
+    bool m_eligibleDirty = true;
+};
+
+#endif // APPCONTROLLER_H
