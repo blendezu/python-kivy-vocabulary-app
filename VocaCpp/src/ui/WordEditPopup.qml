@@ -181,7 +181,7 @@ Popup {
                     text: initialText
                     placeholderText: "Example"
                     font.pixelSize: 17
-                    width: parent.width - 32 - 4
+                    width: parent.width - 52 - 8
                     wrapMode: TextArea.Wrap
                     color: "black"
                     background: Rectangle { color: "#f5f5f5"; radius: 3 }
