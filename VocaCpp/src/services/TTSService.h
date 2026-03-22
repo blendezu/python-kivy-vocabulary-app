@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QTextToSpeech>
+#include <QLocale>
 
 class TTSService : public QObject
 {

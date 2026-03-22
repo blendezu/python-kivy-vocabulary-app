@@ -169,13 +169,63 @@ Popup {
             }
 
             Button {
-                text: "Speak"
+                id: speakButton
+                // Match Python: Fixed duration, show "Speak" normally, "Listening..." when active
+                text: app.stt.isRecording ? "Listening..." : (app.stt.isTranscribing ? "Thinking..." : "Speak")
                 font.pixelSize: 20
                 width: 110; height: 54
-                background: Rectangle { color: "#e05540"; radius: 6 }
+                background: Rectangle { 
+                    color: app.stt.isRecording || app.stt.isTranscribing ? "#e03333" : "#e05540"
+                    radius: 6 
+                }
                 contentItem: Text { text: parent.text; color: "#fff"; font: parent.font; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                onClicked: if (root.currentItem.word) app.stt.startListening()
-                enabled: !!root.currentItem.word
+                
+                onClicked: {
+                    if (app.stt.isRecording) {
+                        // Allow user to stop early if they want, but usually it stops after 3s
+                        app.stt.stopRecording()
+                    } else if (!app.stt.isTranscribing) {
+                        sttResultLabel.text = "Speak now..."
+                        sttResultLabel.color = "white"
+                        // Match Python: 3.0 seconds
+                        app.stt.startListening(3000)
+                    }
+                }
+                enabled: !!root.currentItem.word && !app.stt.isTranscribing
+            }
+        }
+        
+        Text {
+            id: sttResultLabel
+            text: ""
+            color: "white"
+            font.pixelSize: 16
+            Layout.alignment: Qt.AlignHCenter
+            visible: text !== ""
+        }
+        
+        Connections {
+            target: app.stt
+            function onTranscriptionResult(text, error) {
+                if (error) {
+                    sttResultLabel.text = "Error: " + error
+                    sttResultLabel.color = "#ff6666"
+                } else {
+                    console.log("Transcription: " + text)
+                    var cleanText = text.replace(/[^a-zA-Z0-9]/g, "").toLowerCase()
+                    if (!root.currentItem.word) return;
+                    var target = root.currentItem.word.replace(/[^a-zA-Z0-9]/g, "").toLowerCase()
+                    
+                    if (cleanText === target) {
+                        sttResultLabel.text = "Correct! (" + text + ")"
+                        sttResultLabel.color = "#88ff88"
+                    } else {
+                        sttResultLabel.text = "Heard: " + text
+                        sttResultLabel.color = "#ffaa88"
+                    }
+                }
+                
+                // Reset button state logic if needed (it resets automatically via isRecording binding)
             }
         }
 

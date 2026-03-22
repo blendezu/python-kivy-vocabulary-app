@@ -5,11 +5,16 @@ project(VocaCpp VERSION 0.1 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Qt6 6.4 REQUIRED COMPONENTS Quick Widgets Multimedia TextToSpeech)
+find_package(Qt6 6.4 REQUIRED COMPONENTS Quick Widgets Multimedia TextToSpeech Concurrent)
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
+
+# Whisper.cpp integration
+set(WHISPER_BUILD_TESTS OFF CACHE BOOL "Build whisper.cpp tests" FORCE)
+set(WHISPER_BUILD_EXAMPLES OFF CACHE BOOL "Build whisper.cpp examples" FORCE)
+add_subdirectory(3rdparty/whisper.cpp)
 
 add_executable(VocaCpp
     src/main.cpp
@@ -32,6 +37,8 @@ target_link_libraries(VocaCpp
     Qt6::Widgets
     Qt6::Multimedia
     Qt6::TextToSpeech
+    Qt6::Concurrent
+    whisper
 )
 
 # Copy QML files to build directory or embed them (Embedding is better for release, copying for dev)

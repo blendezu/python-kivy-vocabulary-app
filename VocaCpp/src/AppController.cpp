@@ -10,6 +10,7 @@
 #include <QFileInfo>
 #include <QRegularExpression>
 #include <algorithm>
+#include <iostream>
 
 namespace {
 inline QString toKey(const QString &value) { return value.toLower(); }
@@ -120,7 +121,11 @@ AppController::AppController(QObject *parent) : QObject(parent)
     }
 
     m_tts = new TTSService(this);
+    qDebug() << "### Creating STTService ###";
+    std::cout << "### Creating STTService std::cout ###" << std::endl;
     m_stt = new STTService(this);
+    qDebug() << "### Created STTService ###";
+    std::cout << "### Created STTService std::cout ###" << std::endl;
     
     // Initial Calc
     rebuildEligiblePool();

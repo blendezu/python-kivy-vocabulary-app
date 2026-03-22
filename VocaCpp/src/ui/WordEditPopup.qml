@@ -144,17 +144,21 @@ Popup {
         console.log("Destroying " + meaningRows.length + " existing rows")
         while (meaningRows.length > 0) {
             var r = meaningRows.pop()
+            r.row.visible = false // Hide immediately
             r.row.destroy()
         }
 
         // 2. Create new rows based on data
-        console.log("Creating " + dataList.length + " new rows")
+        console.log("Creating " + dataList.length + " new rows for: " + newWord)
         for (var i = 0; i < dataList.length; i++) {
             var dataItem = dataList[i]
             // We create a fresh row for every item
-            addMeaningRow(dataItem.meaning || "", 
-                          dataItem.examples && dataItem.examples.length > 0 ? dataItem.examples : [""], 
-                          dataItem.pos || [])
+            var m_text = dataItem.meaning || ""
+            var ex_list = dataItem.examples && dataItem.examples.length > 0 ? dataItem.examples : [""]
+            var pos_list = dataItem.pos || []
+            
+            console.log(" - Adding row: meaning='" + m_text + "'")
+            addMeaningRow(m_text, ex_list, pos_list)
         }
     }
 
