@@ -4,44 +4,115 @@ import QtQuick.Layouts
 
 Popup {
     id: root
-    // injected from Main.qml
     property var editPopupRef: null
-    width: window.width * 0.8
-    height: window.height * 0.8
+    property var exprItems: []
+
+    width: window.width * 0.95
+    height: window.height * 0.95
     modal: true
     focus: true
     anchors.centerIn: parent
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
 
-    background: Rectangle { color: "#1e232e"; radius: 8; border.color: "#333"; border.width: 1 }
+    background: Rectangle { color: "#22252a"; radius: 8; border.color: "#333"; border.width: 1 }
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: 12
-        spacing: 8
+        anchors.margins: 16
+        spacing: 12
 
-        RowLayout {
+        Text { 
+            text: "Expressions & Phrases"
+            color: "#f2faff"
+            font.pixelSize: 22
+            font.bold: true
             Layout.fillWidth: true
-            Text { text: "Expressions & Phrases"; color: "#f2faff"; font.pixelSize: 20 }
-            Item { Layout.fillWidth: true }
-            Button {
-                text: "Add"
-                onClicked: addExprPopup.open()
-            }
+        }
+
+        TextField {
+            id: searchInput
+            placeholderText: "Search..."
+            Layout.fillWidth: true
+            font.pixelSize: 18
+            background: Rectangle { color: "#e8eff5"; radius: 4 }
+            onTextChanged: rebuildList()
+        }
+
+        Rectangle {
+            Layout.fillWidth: true
+            height: 2
+            color: "#3b82f6"
+            Layout.topMargin: -8
         }
 
         ListView {
             id: listView
             Layout.fillWidth: true
             Layout.fillHeight: true
-            model: ListModel { id: exprModel }
-            delegate: ItemDelegate {
-                width: listView.width; height: 44
-                text: model.word
-                onClicked: {
-                    if (editPopupRef) {
-                        editPopupRef.wordToEdit = model.word
-                        editPopupRef.open()
+            clip: true
+            spacing: 16
+            model: root.exprItems
+            
+            delegate: Rectangle {
+                width: listView.width
+                height: contentCol.height + 16
+                color: "transparent"
+
+                ColumnLayout {
+                    id: contentCol
+                    anchors.top: parent.top
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.margins: 4
+                    spacing: 6
+
+                    Text {
+                        text: modelData.word
+                        color: "#e2e8f0"
+                        font.pixelSize: 22
+                        font.bold: true
+                        Layout.fillWidth: true
+                        wrapMode: Text.WordWrap
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                if (editPopupRef) {
+                                    editPopupRef.wordToEdit = modelData.word
+                                    editPopupRef.open()
+                                }
+                            }
+                        }
+                    }
+
+                    Repeater {
+                        model: modelData.details
+                        delegate: ColumnLayout {
+                            Layout.fillWidth: true
+                            Layout.leftMargin: 4
+                            spacing: 4
+                            
+                            Text {
+                                text: (index + 1) + ". " + modelData.meaning
+                                color: "#f8fafc"
+                                font.pixelSize: 20
+                                wrapMode: Text.WordWrap
+                                Layout.fillWidth: true
+                                visible: modelData.meaning !== ""
+                            }
+                            
+                            Repeater {
+                                model: modelData.examples
+                                delegate: Text {
+                                    text: "- " + modelData
+                                    color: "#cbd5e1"
+                                    font.pixelSize: 18
+                                    wrapMode: Text.WordWrap
+                                    Layout.fillWidth: true
+                                    Layout.leftMargin: 12
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -49,31 +120,66 @@ Popup {
 
         RowLayout {
             Layout.fillWidth: true
-            Button { text: "Close"; onClicked: root.close() }
+            spacing: 8
+            
+            Button {
+                text: "Add"
+                font.pixelSize: 20
+                Layout.fillWidth: true
+                Layout.preferredHeight: 64
+                background: Rectangle { color: "#3b82f6"; radius: 6 }
+                contentItem: Text { text: parent.text; color: "#ffffff"; font: parent.font; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                onClicked: addExprPopup.open()
+            }
+            
+            Button { 
+                text: "Close"
+                font.pixelSize: 20
+                Layout.fillWidth: true
+                Layout.preferredHeight: 64
+                background: Rectangle { color: "#7a7a7a"; radius: 6 }
+                contentItem: Text { text: parent.text; color: "#e2e8f0"; font: parent.font; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                onClicked: root.close() 
+            }
         }
     }
 
     onOpened: {
-        exprModel.clear()
-        var arr = app.getExpressions()
-        for (var i = 0; i < arr.length; i++) exprModel.append({"word": arr[i]})
+        searchInput.text = ""
+        rebuildList()
     }
 
-    // Inline small Add popup
+    function rebuildList() {
+        root.exprItems = app.getExpressionsWithDetails(searchInput.text)
+    }
+
+    // Inline Add popup
     Popup {
         id: addExprPopup
-        width: root.width * 0.6; height: root.height * 0.5
+        width: root.width * 0.8
+        height: root.height * 0.6
         modal: true; focus: true; anchors.centerIn: parent
-        background: Rectangle { color: "#222"; radius: 8 }
-        ColumnLayout { anchors.fill: parent; anchors.margins: 12; spacing: 8
-            Text { text: "New expression"; color: "#f2faff" }
-            TextField { id: phraseField; placeholderText: "Expression / phrase" }
-            TextArea { id: meaningArea; placeholderText: "Meaning (optional)"; Layout.fillHeight: true }
-            TextField { id: exampleField; placeholderText: "Example (optional)" }
-            RowLayout { Layout.fillWidth: true; spacing: 8
-                Button { text: "Cancel"; onClicked: addExprPopup.close() }
+        background: Rectangle { color: "#1e293b"; radius: 8; border.color: "#475569"; border.width: 1 }
+        
+        ColumnLayout { 
+            anchors.fill: parent; anchors.margins: 16; spacing: 12
+            Text { text: "New expression"; color: "#f8fafc"; font.pixelSize: 22; font.bold: true }
+            TextField { id: phraseField; placeholderText: "Expression / phrase"; Layout.fillWidth: true; font.pixelSize: 18 }
+            TextArea { id: meaningArea; placeholderText: "Meaning (optional)"; Layout.fillWidth: true; Layout.fillHeight: true; font.pixelSize: 18; wrapMode: TextArea.Wrap }
+            TextField { id: exampleField; placeholderText: "Example (optional)"; Layout.fillWidth: true; font.pixelSize: 18 }
+            
+            RowLayout { 
+                Layout.fillWidth: true; spacing: 12
+                Button { 
+                    text: "Cancel"
+                    Layout.fillWidth: true
+                    onClicked: addExprPopup.close() 
+                }
                 Button {
                     text: "Add"
+                    Layout.fillWidth: true
+                    background: Rectangle { color: "#3b82f6"; radius: 4 }
+                    contentItem: Text { text: parent.text; color: "#ffffff"; font: parent.font; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                     onClicked: {
                         var phrase = phraseField.text.trim()
                         if (!phrase) return
@@ -82,11 +188,13 @@ Popup {
                         if (exampleField.text.trim()) entry.examples.push(exampleField.text.trim())
                         details.push(entry)
                         app.addExpression(phrase, details)
+                        
+                        phraseField.text = ""
+                        meaningArea.text = ""
+                        exampleField.text = ""
+                        
                         addExprPopup.close()
-                        // refresh
-                        exprModel.clear()
-                        var arr = app.getExpressions()
-                        for (var i = 0; i < arr.length; i++) exprModel.append({"word": arr[i]})
+                        rebuildList()
                     }
                 }
             }

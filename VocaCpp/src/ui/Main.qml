@@ -91,7 +91,7 @@ ApplicationWindow {
                 Layout.fillHeight: true
                 font.pixelSize: 18
                 bgColor: "#1a5900" 
-                onClicked: {} // TODO
+                onClicked: learnedWordsPopup.open()
             }
             ColorButton {
                 text: "Review"
@@ -454,5 +454,6 @@ ApplicationWindow {
     AddNewWordsPopup { id: addNewWordsPopup }
     NewWordsFromTextPopup { id: newTextPopup; wordListPopup: wordListPopup }
     ExpressionsPopup { id: expressionsPopup; editPopupRef: editPopup }
+    LearnedWordsPopup { id: learnedWordsPopup; editPopupRef: editPopup }
     WordListPopup { id: wordListPopup }
 }

@@ -367,9 +367,15 @@ Popup {
                                 addMeaningRow("", [""], [])
                             } else if (lbl === "Save") {
                                 app.updateWordDetails(wordToEdit, collectData(), ipaField.text)
+                                if (app.state.learnCurrentWord === wordToEdit) {
+                                    app.markWordKnown(wordToEdit)
+                                }
                                 root.close()
                             } else if (lbl === "Next") {
                                 app.updateWordDetails(wordToEdit, collectData(), ipaField.text)
+                                if (app.state.learnCurrentWord === wordToEdit) {
+                                    app.markWordKnown(wordToEdit)
+                                }
                                 app.nextLearnWord()
                                 var nw = app.state.learnCurrentWord
                                 if (!nw) root.close()

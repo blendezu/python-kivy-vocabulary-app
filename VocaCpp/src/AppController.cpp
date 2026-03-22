@@ -177,11 +177,15 @@ void AppController::markWordKnown(const QString &word)
         nSeq.removeAll(word);
         m_state->setNewSequence(nSeq);
     }
+    
+    // Track in learned session (so it appears in the "Learned words" list)
+    m_state->learnedLog.insert(lw, QDate::currentDate().toString(Qt::ISODate));
+    if (!m_state->learnedSession.contains(lw)) {
+        m_state->learnedSession.append(lw);
+    }
 
     m_eligibleDirty = true;
     m_store->saveAsync();
-    // In Python, clicking "Correct" didn't auto-advance. It just marked it.
-    // But "Next Word" will advance.
 }
 
 void AppController::markWordNew(const QString &word)
@@ -513,6 +517,11 @@ void AppController::updateLearnWord()
     }
 }
 
+QStringList AppController::getNewWordsList() const
+{
+    return m_state->newSequence();
+}
+
 void AppController::nextLearnWord()
 {
     QStringList newSeq = m_state->newSequence();
@@ -534,31 +543,7 @@ void AppController::markLearnWordKnown()
     QString w = m_state->learnCurrentWord();
     if (w.isEmpty()) return;
     
-    // Add to known, remove from new
-    m_state->knownWords.insert(w);
-    m_state->newWords.remove(w);
-    
-    QStringList kSeq = m_state->knownSequence();
-    if (!kSeq.contains(w)) {
-        kSeq.append(w);
-        m_state->setKnownSequence(kSeq);
-    }
-    
-    QStringList nSeq = m_state->newSequence();
-    nSeq.removeAll(w);
-    m_state->setNewSequence(nSeq);
-    
-    // Log as learned today
-    m_state->learnedLog.insert(w.toLower(), QDate::currentDate().toString(Qt::ISODate));
-    if (!m_state->learnedSession.contains(w.toLower())) {
-        m_state->learnedSession.append(w.toLower());
-    }
-    
-    m_eligibleDirty = true;
-    save();
-    
-    // In Python, "Learned" might pop up meaning editor or just move next. 
-    // Button Learned calls `_mark_known_no_advance` then `_learn_next_word`.
+    markWordKnown(w);
     nextLearnWord();
 }
 
@@ -810,5 +795,82 @@ void AppController::addExpression(const QString &phrase, const QVariantList &det
     
     // Add to wordDetails
     updateWordDetails(cleanPhrase, details, "");
+}
+
+QVariantList AppController::getLearnedWordsAndExpressions(const QString &query, bool onlyTwister) const
+{
+    QString q = query.trimmed().toLower();
+    
+    QStringList combined;
+    // learnedSession reversed
+    for (int i = m_state->learnedSession.size() - 1; i >= 0; --i) {
+        combined.append(m_state->learnedSession[i]);
+    }
+    for (const QString &expr : m_state->expressions) {
+        if (!combined.contains(expr, Qt::CaseInsensitive)) {
+            combined.append(expr);
+        }
+    }
+    
+    QVariantList result;
+    for (const QString &w : combined) {
+        QString lw = w.toLower();
+        if (!q.isEmpty() && !lw.contains(q)) continue;
+        
+        if (onlyTwister && !m_state->tongueTwisters.contains(lw)) continue;
+        
+        QVariantMap item;
+        item["word"] = w;
+        item["ipa"] = m_state->wordIpa.value(lw, "");
+        
+        QVariantList detailsList;
+        if (m_state->wordDetails.contains(lw)) {
+            const auto &details = m_state->wordDetails[lw];
+            for (const WordDetail &d : details) {
+                QVariantMap dMap;
+                dMap["meaning"] = d.meaning;
+                dMap["examples"] = d.examples;
+                dMap["pos"] = d.pos;
+                detailsList.append(dMap);
+            }
+        }
+        item["details"] = detailsList;
+        
+        result.append(item);
+    }
+    
+    return result;
+}
+
+QVariantList AppController::getExpressionsWithDetails(const QString &query) const
+{
+    QString q = query.trimmed().toLower();
+    
+    QVariantList result;
+    for (const QString &w : m_state->expressions) {
+        QString lw = w.toLower();
+        if (!q.isEmpty() && !lw.contains(q)) continue;
+        
+        QVariantMap item;
+        item["word"] = w;
+        item["ipa"] = m_state->wordIpa.value(lw, "");
+        
+        QVariantList detailsList;
+        if (m_state->wordDetails.contains(lw)) {
+            const auto &details = m_state->wordDetails[lw];
+            for (const WordDetail &d : details) {
+                QVariantMap dMap;
+                dMap["meaning"] = d.meaning;
+                dMap["examples"] = d.examples;
+                dMap["pos"] = d.pos;
+                detailsList.append(dMap);
+            }
+        }
+        item["details"] = detailsList;
+        
+        result.append(item);
+    }
+    
+    return result;
 }
 

@@ -35,7 +35,8 @@ public:
     Q_INVOKABLE void restoreRemovedWord(const QString &word);
     Q_INVOKABLE void correctWord(const QString &oldWord, const QString &newWord);
 
-    // Learn Mode
+    // Learn
+    Q_INVOKABLE QStringList getNewWordsList() const;
     Q_INVOKABLE void nextLearnWord();
     Q_INVOKABLE void markLearnWordKnown();
     Q_INVOKABLE void removeLearnWord();
@@ -58,8 +59,12 @@ public:
     Q_INVOKABLE int addNewWordsFromText(const QString &text);
     Q_INVOKABLE QStringList findWordsInText(const QString &text);
 
+    // Learned Words & Expressions List
+    Q_INVOKABLE QVariantList getLearnedWordsAndExpressions(const QString &query, bool onlyTwister) const;
+
     // Expressions
     Q_INVOKABLE QStringList getExpressions() const;
+    Q_INVOKABLE QVariantList getExpressionsWithDetails(const QString &query) const;
     Q_INVOKABLE void addExpression(const QString &phrase, const QVariantList &details);
 
 private:

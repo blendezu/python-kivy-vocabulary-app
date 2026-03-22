@@ -49,4 +49,5 @@ qt_add_qml_module(VocaCpp
         src/ui/AddNewWordsPopup.qml
         src/ui/NewWordsFromTextPopup.qml
         src/ui/ExpressionsPopup.qml
+        src/ui/LearnedWordsPopup.qml
 )
