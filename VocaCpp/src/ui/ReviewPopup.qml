@@ -226,37 +226,56 @@ Popup {
         Item { Layout.fillHeight: true }
 
         // ── Bottom bar ───────────────────────────────────────
+        Item { Layout.fillHeight: true } // Push buttons to bottom
+
         RowLayout {
             Layout.fillWidth: true
-            Layout.preferredHeight: 44
-            spacing: 8
+            Layout.preferredHeight: 40 // Reduced height
+            spacing: 12
 
             Button {
                 text: "Close"
-                font.pixelSize: 18
+                font.pixelSize: 16
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                background: Rectangle { color: "#5a5a6a"; radius: 6 }
-                contentItem: Text { text: parent.text; color: "#e2e8f0"; font: parent.font; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                background: Rectangle { 
+                    color: "#3d4355" // Darker grey for close
+                    radius: 6 
+                }
+                contentItem: Text { 
+                    text: parent.text
+                    color: "#e2e8f0"
+                    font: parent.font
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
                 onClicked: root.close()
             }
 
             Button {
                 text: root.revealed ? "Next" : "Show"
-                font.pixelSize: 18
+                font.pixelSize: 16
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 background: Rectangle {
-                    color: root.revealed ? "#22bb66" : "#3b82f6"
+                    color: root.revealed ? "#22c55e" : "#3b82f6" // Green or Blue
                     radius: 6
                 }
-                contentItem: Text { text: parent.text; color: "#fff"; font: parent.font; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                enabled: !!root.currentItem.word
+                contentItem: Text { 
+                    text: parent.text
+                    color: "#fff"
+                    font: parent.font
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+                enabled: (root.reviewPool && root.reviewPool.length > 0)
                 onClicked: {
                     if (root.revealed) {
+                        // Mark as reviewed? Logic not implemented
                         root.pickRandom()
                     } else {
                         root.revealed = true
+                        // Show all details is handled by visibility binding
                     }
                 }
             }

@@ -253,11 +253,18 @@ ApplicationWindow {
                     color: "#006600" // darker green
                     radius: 4
                     Text {
-                        anchors.centerIn: parent
+                        anchors.fill: parent
+                        anchors.margins: 4
                         text: "Known words (" + appState.knownSequence.length + "/" + appState.vocabularyCount + ")"
                         color: "white"
-                        font.pixelSize: 14
+                        font.pixelSize: 16
                         font.bold: true
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        wrapMode: Text.WordWrap
+                        elide: Text.ElideRight
+                        fontSizeMode: Text.Fit
+                        minimumPixelSize: 10
                     }
                 }
                 Rectangle {
@@ -350,11 +357,18 @@ ApplicationWindow {
                     color: "#b37700" // dirty yellow/brown
                     radius: 4
                     Text {
-                        anchors.centerIn: parent
+                        anchors.fill: parent
+                        anchors.margins: 4
                         text: "New words (" + appState.newSequence.length + "/" + appState.vocabularyCount + ")"
                         color: "white"
-                        font.pixelSize: 14
+                        font.pixelSize: 16
                         font.bold: true
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        wrapMode: Text.WordWrap
+                        elide: Text.ElideRight
+                        fontSizeMode: Text.Fit
+                        minimumPixelSize: 10
                     }
                 }
                 Rectangle {
@@ -401,11 +415,18 @@ ApplicationWindow {
                     color: "#660000" // dark red
                     radius: 4
                     Text {
-                        anchors.centerIn: parent
+                        anchors.fill: parent
+                        anchors.margins: 4
                         text: "Removed words (" + appState.removedSequence.length + ")"
                         color: "white"
-                        font.pixelSize: 14
+                        font.pixelSize: 16
                         font.bold: true
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        wrapMode: Text.WordWrap
+                        elide: Text.ElideRight
+                        fontSizeMode: Text.Fit
+                        minimumPixelSize: 10
                     }
                 }
                 Rectangle {
