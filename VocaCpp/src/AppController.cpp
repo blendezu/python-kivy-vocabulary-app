@@ -622,6 +622,54 @@ int AppController::getReviewMatchingCount(const QString &startStr, const QString
     return count;
 }
 
+QVariantList AppController::getReviewPool(const QString &startStr, const QString &endStr, bool twisterOnly) const
+{
+    QDate st = parseReviewDate(startStr);
+    QDate en = parseReviewDate(endStr);
+    
+    // Build pool: all learned session words + expressions
+    QStringList candidates;
+    candidates += m_state->learnedSession;
+    for (const QString &expr : m_state->expressions) {
+        if (!candidates.contains(expr.toLower())) candidates.append(expr.toLower());
+    }
+    
+    QVariantList result;
+    for (const QString &w : candidates) {
+        QString lw = w.toLower();
+        
+        // Date filter
+        if (st.isValid() || en.isValid()) {
+            QString ds = m_state->learnedLog.value(lw, "").trimmed();
+            QDate d = ds.isEmpty() ? QDate() : QDate::fromString(ds, Qt::ISODate);
+            if (st.isValid() && (!d.isValid() || d < st)) continue;
+            if (en.isValid() && (!d.isValid() || d > en)) continue;
+        }
+        
+        // Tongue-twister filter
+        if (twisterOnly && !m_state->tongueTwisters.contains(lw)) continue;
+        
+        // Build rich item
+        QVariantMap item;
+        item["word"] = w;
+        item["ipa"] = m_state->wordIpa.value(lw, "");
+        
+        QVariantList detailsList;
+        if (m_state->wordDetails.contains(lw)) {
+            for (const WordDetail &d : m_state->wordDetails[lw]) {
+                QVariantMap dMap;
+                dMap["meaning"] = d.meaning;
+                dMap["examples"] = d.examples;
+                dMap["pos"] = d.pos;
+                detailsList.append(dMap);
+            }
+        }
+        item["details"] = detailsList;
+        result.append(item);
+    }
+    
+    return result;
+}
 void AppController::startReview(const QString &startStr, const QString &endStr, bool twisterOnly)
 {
     m_reviewPool.clear();

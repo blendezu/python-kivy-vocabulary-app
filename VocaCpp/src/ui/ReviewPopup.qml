@@ -3,304 +3,261 @@ import QtQuick.Controls
 import QtQuick.Layouts
 
 Popup {
-    id: reviewPopup
+    id: root
     width: window.width * 0.95
     height: window.height * 0.95
     modal: true
     focus: true
     anchors.centerIn: parent
-    closePolicy: Popup.NoAutoClose // user must click Close to prevent accidental exits
+    closePolicy: Popup.CloseOnEscape
+
+    property var editPopupRef: null
 
     background: Rectangle {
-        color: "#1e232e" 
+        color: "#22252a"
         radius: 8
-        border.color: "#3385e6" 
+        border.color: "#3385e6"
         border.width: 1
     }
-    
-    property bool showingMeaning: false
 
-    function updateMatchCount() {
-        if (!app) return;
-        let count = app.getReviewMatchingCount(startDateInput.text, endDateInput.text, twisterCheck.checked);
-        matchingCountText.text = "Matching words: " + count;
+    // Internal state
+    property var reviewPool: []
+    property int currentIdx: -1
+    property bool revealed: false
+    property var currentItem: ({})
+
+    function rebuildPool() {
+        reviewPool = app.getReviewPool(fromInput.text, toInput.text, twisterBtn.checked)
+        currentIdx = -1
+        revealed = false
+        currentItem = {}
+        if (reviewPool.length > 0) {
+            pickRandom()
+        }
     }
 
+    function pickRandom() {
+        if (reviewPool.length === 0) {
+            currentItem = {}
+            currentIdx = -1
+            return
+        }
+        currentIdx = Math.floor(Math.random() * reviewPool.length)
+        currentItem = reviewPool[currentIdx]
+        revealed = false
+    }
 
-    StackLayout {
-        id: stackLayout
+    onOpened: {
+        fromInput.text = ""
+        toInput.text = ""
+        twisterBtn.checked = false
+        rebuildPool()
+    }
+
+    ColumnLayout {
         anchors.fill: parent
         anchors.margins: 16
-        currentIndex: 0 // 0 = Setup, 1 = Review
+        spacing: 10
 
-        // --- View 0: Setup ---
-        ColumnLayout {
-            spacing: 12
+        // ── Header ──────────────────────────────────────────
+        Text {
+            text: "Review"
+            color: "#f2faff"
+            font.pixelSize: 24
+            font.bold: true
+            Layout.fillWidth: true
+        }
+        Rectangle { height: 2; Layout.fillWidth: true; color: "#3385e6" }
 
-            Text {
-                text: "Review Setup"
-                color: "#f2faff"
-                font.pixelSize: 28
-                font.bold: true
+        // ── Date filters ─────────────────────────────────────
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 8
+            Text { text: "From:"; color: "#9bb0c8"; font.pixelSize: 17; Layout.preferredWidth: 48 }
+            TextField {
+                id: fromInput
                 Layout.fillWidth: true
+                font.pixelSize: 18
+                placeholderText: "DD/MM or YYYY-MM-DD"
+                background: Rectangle { color: "#e8eff5"; radius: 4 }
+                onTextChanged: Qt.callLater(root.rebuildPool)
             }
-
-            Rectangle {
+            Text { text: "To:"; color: "#9bb0c8"; font.pixelSize: 17; Layout.preferredWidth: 30 }
+            TextField {
+                id: toInput
                 Layout.fillWidth: true
-                height: 2
-                color: "#3385e6"
+                font.pixelSize: 18
+                placeholderText: "DD/MM or YYYY-MM-DD"
+                background: Rectangle { color: "#e8eff5"; radius: 4 }
+                onTextChanged: Qt.callLater(root.rebuildPool)
             }
-
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: 10
-
-                Text { text: "Start:"; color: "#c7d1e0"; font.pixelSize: 18; Layout.preferredWidth: 60 }
-                TextField {
-                    id: startDateInput
-                    Layout.fillWidth: true
-                    font.pixelSize: 18
-                    placeholderText: "DD/MM or YYYY-MM-DD"
-                    onTextChanged: reviewPopup.updateMatchCount()
+            Button {
+                id: twisterBtn
+                text: "Tongue-twister"
+                font.pixelSize: 16
+                checkable: true
+                Layout.preferredWidth: 160
+                background: Rectangle {
+                    color: twisterBtn.checked ? "#6655aa" : "#3d4355"
+                    radius: 4
                 }
-
-                Text { text: "End:"; color: "#c7d1e0"; font.pixelSize: 18; Layout.preferredWidth: 40 }
-                TextField {
-                    id: endDateInput
-                    Layout.fillWidth: true
-                    font.pixelSize: 18
-                    placeholderText: "DD/MM or YYYY-MM-DD"
-                    onTextChanged: reviewPopup.updateMatchCount()
+                contentItem: Text {
+                    text: twisterBtn.text
+                    color: "#f2faff"
+                    font: twisterBtn.font
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
                 }
+                onCheckedChanged: root.rebuildPool()
             }
+        }
 
-            // Quick dates row
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: 8
-                
-                Repeater {
-                    model: ["Today", "-1", "-2", "-3", "-4", "-5", "-6", "-7", "-8"]
-                    Button {
-                        text: modelData
-                        font.pixelSize: 16
-                        Layout.fillWidth: true
-                        palette.button: "#468c99"
-                        palette.buttonText: "#f2faff"
-                        onClicked: {
-                            startDateInput.text = modelData
-                            endDateInput.text = modelData
-                        }
-                    }
-                }
-            }
-            
-            RowLayout {
-                Layout.fillWidth: true
-                Button {
-                    id: twisterCheck
-                    text: "Tongue-twister exclusively"
-                    font.pixelSize: 18
-                    checkable: true
-                    Layout.preferredWidth: 250
-                    onCheckedChanged: reviewPopup.updateMatchCount()
-                }
+        // ── Word count label ─────────────────────────────────
+        Text {
+            text: root.reviewPool.length + " words in pool"
+            color: "#6888cc"
+            font.pixelSize: 17
+            Layout.fillWidth: true
+        }
 
-            }
+        // ── Spacer ───────────────────────────────────────────
+        Item { Layout.preferredHeight: 24 }
 
-            Text {
-                id: matchingCountText
-                text: "Matching words: -"
-                color: "#8c8ce6"
-                font.pixelSize: 20
-                Layout.fillWidth: true
-            }
-
-            Item { Layout.fillHeight: true }
-
-            RowLayout {
-                Layout.fillWidth: true
-                Layout.preferredHeight: 70
-                spacing: 12
-
-                Button {
-                    text: "Close"
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    font.pixelSize: 24
-                    palette.buttonText: "#f2faff"
-                    palette.button: "#808080"
-                    onClicked: reviewPopup.close()
-                }
-                Button {
-                    text: "Start Review"
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    font.pixelSize: 24
-                    palette.buttonText: "#f2faff"
-                    palette.button: "#3385e6"
-                    onClicked: {
-                        app.startReview(startDateInput.text, endDateInput.text, twisterCheck.checked)
-                        showingMeaning = false
-                        stackLayout.currentIndex = 1
+        // ── Current word ─────────────────────────────────────
+        Text {
+            text: root.currentItem.word || (root.reviewPool.length === 0 ? "No words in pool" : "")
+            color: root.reviewPool.length === 0 ? "#666" : "#f2faff"
+            font.pixelSize: 64
+            horizontalAlignment: Text.AlignHCenter
+            Layout.fillWidth: true
+            wrapMode: Text.Wrap
+            MouseArea {
+                anchors.fill: parent
+                cursorShape: Qt.PointingHandCursor
+                onClicked: {
+                    if (root.currentItem.word && root.editPopupRef) {
+                        root.editPopupRef.wordToEdit = root.currentItem.word
+                        root.editPopupRef.open()
                     }
                 }
             }
         }
 
-        // --- View 1: Active Review ---
-        ColumnLayout {
-            spacing: 12
+        // ── IPA ──────────────────────────────────────────────
+        Text {
+            text: root.currentItem.ipa ? "[" + root.currentItem.ipa + "]" : ""
+            color: "#a0ccbf"
+            font.pixelSize: 22
+            horizontalAlignment: Text.AlignHCenter
+            Layout.fillWidth: true
+        }
 
-            Text {
-                text: "Reviewing... " + app.state.reviewRemainingCount + " remaining"
-                color: "#f2faff"
+        // ── Listen + Speak buttons ────────────────────────────
+        Row {
+            Layout.alignment: Qt.AlignHCenter
+            spacing: 16
+
+            Button {
+                text: "Listen"
                 font.pixelSize: 20
-                Layout.fillWidth: true
+                width: 110; height: 54
+                background: Rectangle { color: "#3b82f6"; radius: 6 }
+                contentItem: Text { text: parent.text; color: "#fff"; font: parent.font; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                onClicked: if (root.currentItem.word) app.tts.speak(root.currentItem.word)
+                enabled: !!root.currentItem.word
             }
 
-            Rectangle {
-                Layout.fillWidth: true
-                height: 2
-                color: "#3385e6"
+            Button {
+                text: "Speak"
+                font.pixelSize: 20
+                width: 110; height: 54
+                background: Rectangle { color: "#e05540"; radius: 6 }
+                contentItem: Text { text: parent.text; color: "#fff"; font: parent.font; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                onClicked: if (root.currentItem.word) app.stt.startListening()
+                enabled: !!root.currentItem.word
             }
+        }
 
-            Item { Layout.fillHeight: true }
+        // ── Revealed meanings area ───────────────────────────
+        ScrollView {
+            id: meaningsScroll
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            clip: true
+            visible: root.revealed && !!root.currentItem.word
 
-            Text {
-                text: app.state.reviewCurrentWord ? app.state.reviewCurrentWord : "Finished!"
-                color: "#f2faff"
-                font.pixelSize: 64
-                font.bold: true
-                Layout.alignment: Qt.AlignHCenter
-            }
-            
-            Text {
-                text: app.state.reviewCurrentWord && app.state.vocabulary[app.state.reviewCurrentWord] ? 
-                      "[" + app.state.vocabulary[app.state.reviewCurrentWord]["ipa"] + "]" : ""
-                color: "#c7d1e0"
-                font.pixelSize: 24
-                Layout.alignment: Qt.AlignHCenter
-            }
+            ColumnLayout {
+                width: meaningsScroll.availableWidth
+                spacing: 6
 
+                Repeater {
+                    model: root.currentItem.details || []
+                    delegate: ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 4
+                        Layout.leftMargin: 4
 
-            Item { Layout.fillHeight: true }
-            
-            // Revealed meaning area
-            Rectangle {
-                Layout.fillWidth: true
-                Layout.preferredHeight: 150
-                color: showingMeaning ? "#2a2a2a" : "transparent"
-                border.color: showingMeaning ? "#444444" : "transparent"
-                radius: 8
-                
-                Text {
-                    id: meaningText
-                    anchors.fill: parent
-                    anchors.margins: 10
-                    color: "#f2faff"
-                    font.pixelSize: 18
-                    wrapMode: Text.WordWrap
-                    
-                    function getMeaningText() {
-                        if (!showingMeaning || !app.state.reviewCurrentWord) return "";
-                        let wordData = app.state.vocabulary[app.state.reviewCurrentWord];
-                        if (!wordData || !wordData.meanings) return "";
-                        let result = "";
-                        for (let i = 0; i < wordData.meanings.length; i++) {
-                            let m = wordData.meanings[i];
-                            result += (i+1) + ". " + m.pos + " " + m.expl + "\n";
+                        Text {
+                            text: (index + 1) + ". " + (modelData.meaning || "")
+                            color: "#f0f4ff"
+                            font.pixelSize: 20
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
+                            visible: modelData.meaning !== ""
                         }
-                        return result;
-                    }
-                    
-                    text: getMeaningText()
-                }
-            }
 
-            Item { Layout.fillHeight: true }
-
-            RowLayout {
-                Layout.fillWidth: true
-                Layout.preferredHeight: 70
-                spacing: 12
-                
-                Button {
-                    text: "Speak"
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    font.pixelSize: 24
-                    palette.buttonText: "#f2faff"
-                    palette.button: "#3385e6"
-                    onClicked: app.tts.speak(app.state.reviewCurrentWord)
-                    enabled: app.state.reviewCurrentWord !== ""
-                }
-                
-                Button {
-                    text: showingMeaning ? "Correct" : "Show"
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    font.pixelSize: 24
-                    palette.buttonText: "#f2faff"
-                    palette.button: showingMeaning ? "#40a661" : "#8c8ce6"
-                    enabled: app.state.reviewCurrentWord !== ""
-                    onClicked: {
-                        if (showingMeaning) {
-                            app.markReviewWordKnown()
-                            showingMeaning = false
-                        } else {
-                            showingMeaning = true
+                        Repeater {
+                            model: modelData.examples || []
+                            delegate: Text {
+                                text: "- " + modelData
+                                color: "#b0c8e8"
+                                font.pixelSize: 18
+                                wrapMode: Text.WordWrap
+                                Layout.fillWidth: true
+                                Layout.leftMargin: 16
+                            }
                         }
                     }
                 }
             }
+        }
 
+        Item { Layout.fillHeight: true }
 
-            RowLayout {
+        // ── Bottom bar ───────────────────────────────────────
+        RowLayout {
+            Layout.fillWidth: true
+            Layout.preferredHeight: 44
+            spacing: 8
+
+            Button {
+                text: "Close"
+                font.pixelSize: 18
                 Layout.fillWidth: true
-                Layout.preferredHeight: 70
-                spacing: 12
-                
-                Button {
-                    text: "Stop Review"
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    font.pixelSize: 24
-                    palette.buttonText: "#f2faff"
-                    palette.button: "#808080"
-                    onClicked: {
-                        stackLayout.currentIndex = 0
-                    }
-                }
-                
-                Button {
-                    text: "Next"
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    font.pixelSize: 24
-                    palette.buttonText: "#f2faff"
-                    palette.button: "#5cc27d"
-                    onClicked: {
-                        app.nextReviewWord()
-                        showingMeaning = false
-                    }
-                    enabled: app.state.reviewCurrentWord !== ""
-                }
-                
-                Button {
-                    text: "Edit"
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    font.pixelSize: 24
-                    palette.buttonText: "#f2faff"
-                    palette.button: "#468c99"
-                    onClicked: {
-                        editPopup.wordToEdit = app.state.reviewCurrentWord
-                        editPopup.open()
-                    }
-                    enabled: app.state.reviewCurrentWord !== ""
-                }
+                Layout.fillHeight: true
+                background: Rectangle { color: "#5a5a6a"; radius: 6 }
+                contentItem: Text { text: parent.text; color: "#e2e8f0"; font: parent.font; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                onClicked: root.close()
+            }
 
+            Button {
+                text: root.revealed ? "Next" : "Show"
+                font.pixelSize: 18
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                background: Rectangle {
+                    color: root.revealed ? "#22bb66" : "#3b82f6"
+                    radius: 6
+                }
+                contentItem: Text { text: parent.text; color: "#fff"; font: parent.font; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                enabled: !!root.currentItem.word
+                onClicked: {
+                    if (root.revealed) {
+                        root.pickRandom()
+                    } else {
+                        root.revealed = true
+                    }
+                }
             }
         }
     }

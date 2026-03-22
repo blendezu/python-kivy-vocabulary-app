@@ -43,6 +43,7 @@ public:
 
     // Review Mode
     Q_INVOKABLE int getReviewMatchingCount(const QString &startStr, const QString &endStr, bool twisterOnly);
+    Q_INVOKABLE QVariantList getReviewPool(const QString &startStr, const QString &endStr, bool twisterOnly) const;
     Q_INVOKABLE void startReview(const QString &startStr, const QString &endStr, bool twisterOnly);
     Q_INVOKABLE void nextReviewWord();
     Q_INVOKABLE void markReviewWordKnown();
