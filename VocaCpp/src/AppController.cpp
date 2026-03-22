@@ -50,6 +50,20 @@ inline void replaceInListCI(QStringList &list, const QString &oldValue, const QS
         }
     }
 }
+
+inline void removeDuplicatesPreserveOrderCI(QStringList &list) {
+    QSet<QString> seen;
+    QStringList result;
+    result.reserve(list.size());
+    for (const QString &item : list) {
+        QString lower = item.toLower();
+        if (!seen.contains(lower)) {
+            seen.insert(lower);
+            result.append(item);
+        }
+    }
+    list = result;
+}
 }
 
 AppController::AppController(QObject *parent) : QObject(parent)
@@ -397,75 +411,121 @@ void AppController::correctWord(const QString &oldWord, const QString &newWord)
     QString oldLower = oldWord.toLower();
     QString newLower = newWord.toLower();
 
+    // 1. Check for removed
     if (m_state->removedWords.contains(newLower)) {
-        return; // Target word is already removed
+        return; 
     }
 
-    // Replace in vocabulary list
-    int vIndex = m_state->vocabulary.indexOf(oldWord);
+    // 2. Handle Vocabulary (Case Insensitive)
+    int vIndex = -1;
+    for (int i = 0; i < m_state->vocabulary.size(); ++i) {
+        if (m_state->vocabulary[i].compare(oldWord, Qt::CaseInsensitive) == 0) {
+            vIndex = i;
+            break;
+        }
+    }
+    
     if (vIndex != -1) {
         m_state->vocabulary.removeAt(vIndex);
     }
-    if (!m_state->vocabulary.contains(newWord)) {
-        m_state->vocabulary.append(newWord);
-        m_state->vocabulary.sort(Qt::CaseInsensitive);
+
+    bool newExists = false;
+    for (const auto &w : m_state->vocabulary) {
+        if (w.compare(newWord, Qt::CaseInsensitive) == 0) {
+            newExists = true;
+            break;
+        }
     }
 
-    // Word Sets
-    if (m_state->knownWords.remove(oldLower)) {
-        insertLower(m_state->knownWords, newWord);
+    if (!newExists) {
+        m_state->vocabulary.append(newWord);
+        std::sort(m_state->vocabulary.begin(), m_state->vocabulary.end(), [](const QString &a, const QString &b) {
+            return a.compare(b, Qt::CaseInsensitive) < 0;
+        });
     }
-    if (m_state->newWords.remove(oldLower)) {
+
+    // 3. Word Sets (Case Insensitive Keys)
+    bool wasKnown = m_state->knownWords.contains(oldLower);
+    bool wasNew = m_state->newWords.contains(oldLower);
+    bool wasUser = m_state->userWords.contains(oldLower);
+    bool wasTwister = m_state->tongueTwisters.contains(oldLower);
+
+    m_state->knownWords.remove(oldLower);
+    m_state->newWords.remove(oldLower);
+    m_state->userWords.remove(oldLower); 
+    // m_state->tongueTwisters.remove(oldLower); // Merge logic: if new is ALSO twister, keep it. If NOT, adopt old?
+
+    // Merge logic for sets:
+    if (wasKnown) insertLower(m_state->knownWords, newWord);
+    
+    if (wasNew) {
+        // If it was in newWords, we move it to new (unless it's already Known)
         if (!m_state->knownWords.contains(newLower)) {
             insertLower(m_state->newWords, newWord);
         }
     }
-    
-    // Internal data maps
+
+    if (wasUser) insertLower(m_state->userWords, newWord);
+
+    // Tongue Twisters: Merging
+    if (wasTwister) {
+        insertLower(m_state->tongueTwisters, newWord);
+    }
+    // Remove old implies we don't need it anymore. If newLower exists, insert checks dupes.
+    removeLower(m_state->tongueTwisters, oldWord);
+
+
+    // 4. Internal data maps (Details, IPA, LearnedLog)
+    // Word Details
     if (m_state->wordDetails.contains(oldLower)) {
-        auto details = m_state->wordDetails.take(oldLower);
-        if (!m_state->wordDetails.contains(newLower)) {
-            m_state->wordDetails.insert(newLower, details);
+        auto oldDets = m_state->wordDetails.take(oldLower);
+        if (m_state->wordDetails.contains(newLower)) {
+             // Append old details to new ones
+             m_state->wordDetails[newLower] += oldDets;
         } else {
-            m_state->wordDetails[newLower].append(details);
+             m_state->wordDetails.insert(newLower, oldDets);
         }
     }
+    
+    // IPA 
     if (m_state->wordIpa.contains(oldLower)) {
-        auto ipa = m_state->wordIpa.take(oldLower);
-        if (!m_state->wordIpa.contains(newLower)) {
-            m_state->wordIpa.insert(newLower, ipa);
+        QString oldIpa = m_state->wordIpa.take(oldLower);
+        // Only overwrite if new IPA is empty or missing
+        if (!m_state->wordIpa.contains(newLower) || m_state->wordIpa[newLower].isEmpty()) {
+            m_state->wordIpa.insert(newLower, oldIpa);
         }
     }
+    
+    // Learned Log
     if (m_state->learnedLog.contains(oldLower)) {
-        auto date = m_state->learnedLog.take(oldLower);
+        QString date = m_state->learnedLog.take(oldLower);
         if (!m_state->learnedLog.contains(newLower)) {
             m_state->learnedLog.insert(newLower, date);
         }
     }
 
-    // Update the UI sequences
-    QStringList kSeq = m_state->knownSequence();
-    if (listContainsCI(kSeq, oldWord)) {
-        replaceInListCI(kSeq, oldWord, newWord);
-        kSeq.sort(Qt::CaseInsensitive);
-        m_state->setKnownSequence(kSeq);
-    }
+    // 5. Sequences and Lists
+    auto updateList = [&](QStringList &list) {
+        replaceInListCI(list, oldWord, newWord);
+        removeDuplicatesPreserveOrderCI(list);
+    };
 
-    QStringList nSeq = m_state->newSequence();
-    if (listContainsCI(nSeq, oldWord)) {
-        replaceInListCI(nSeq, oldWord, newWord);
-        nSeq.sort(Qt::CaseInsensitive);
-        m_state->setNewSequence(nSeq);
-    }
+    QStringList kSeq = m_state->knownSequence(); updateList(kSeq); m_state->setKnownSequence(kSeq);
+    QStringList nSeq = m_state->newSequence(); updateList(nSeq); m_state->setNewSequence(nSeq);
+    QStringList rSeq = m_state->removedSequence(); updateList(rSeq); m_state->setRemovedSequence(rSeq);
+    
+    updateList(m_state->learnedSession);
+    updateList(m_state->wordHistory);
 
-    QStringList rSeq = m_state->removedSequence();
-    if (listContainsCI(rSeq, oldWord)) {
-        replaceInListCI(rSeq, oldWord, newWord);
-        m_state->setRemovedSequence(rSeq);
-    }
-
-    if (m_state->currentWord() == oldWord) {
+    // 6. Current Word Helpers
+    if (m_state->currentWord().compare(oldWord, Qt::CaseInsensitive) == 0) {
         m_state->setCurrentWord(newWord);
+    }
+    if (m_state->learnCurrentWord().compare(oldWord, Qt::CaseInsensitive) == 0) {
+        m_state->setLearnCurrentWord(newWord);
+    }
+    if (m_state->reviewCurrentWord().compare(oldWord, Qt::CaseInsensitive) == 0) {
+        m_state->setReviewCurrentWord(newWord);
     }
     
     emit m_state->vocabularyCountChanged();
