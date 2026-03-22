@@ -55,7 +55,7 @@ ApplicationWindow {
                 Layout.fillHeight: true
                 font.pixelSize: 18
                 bgColor: "#242a36" 
-                onClicked: {} // TODO
+                onClicked: addNewWordsPopup.open()
             }
             ColorButton {
                 text: "Check for new\nwords from text"
@@ -64,7 +64,7 @@ ApplicationWindow {
                 Layout.fillHeight: true
                 font.pixelSize: 18
                 bgColor: "#3385e6" 
-                onClicked: {} // TODO
+                onClicked: newTextPopup.open()
             }
             ColorButton {
                 text: "Expressions"
@@ -73,7 +73,7 @@ ApplicationWindow {
                 Layout.fillHeight: true
                 font.pixelSize: 18
                 bgColor: "#8c52bf" 
-                onClicked: {} // TODO
+                onClicked: expressionsPopup.open()
             }
             ColorButton {
                 text: "Learn"
@@ -450,4 +450,9 @@ ApplicationWindow {
     ReviewPopup { id: reviewPopup }
     WordEditPopup { id: editPopup }
     CorrectWordPopup { id: correctWordPopup }
+
+    AddNewWordsPopup { id: addNewWordsPopup }
+    NewWordsFromTextPopup { id: newTextPopup; wordListPopup: wordListPopup }
+    ExpressionsPopup { id: expressionsPopup; editPopupRef: editPopup }
+    WordListPopup { id: wordListPopup }
 }

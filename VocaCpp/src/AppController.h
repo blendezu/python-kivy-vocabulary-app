@@ -54,6 +54,14 @@ public:
     // Editor
     Q_INVOKABLE void updateWordDetails(const QString &word, const QVariantList &details, const QString &ipa);
 
+    // Text Analysis & Adding Words
+    Q_INVOKABLE int addNewWordsFromText(const QString &text);
+    Q_INVOKABLE QStringList findWordsInText(const QString &text);
+
+    // Expressions
+    Q_INVOKABLE QStringList getExpressions() const;
+    Q_INVOKABLE void addExpression(const QString &phrase, const QVariantList &details);
+
 private:
     void rebuildEligiblePool();
     QString getRandomWord();

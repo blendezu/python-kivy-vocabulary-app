@@ -7,6 +7,7 @@
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QFileInfo>
+#include <QRegularExpression>
 #include <algorithm>
 
 AppController::AppController(QObject *parent) : QObject(parent)
@@ -703,4 +704,111 @@ void AppController::markReviewWordKnown()
     nextReviewWord();
 }
 
+int AppController::addNewWordsFromText(const QString &text)
+{
+    QStringList lines = text.split(QRegularExpression("[\r\n]+"), Qt::SkipEmptyParts);
+    QSet<QString> existingLower;
+    for (const QString &w : m_state->vocabulary) existingLower.insert(w.toLower());
+    for (const QString &w : m_state->removedWords) existingLower.insert(w.toLower());
+
+    QStringList toAdd;
+    for (QString line : lines) {
+        line = line.trimmed();
+        if (line.isEmpty()) continue;
+        
+        // Clean leading bullets, hyphens
+        line.replace(QRegularExpression("^[-*\\x{2022}]+\\s*"), "");
+        line.replace("’", "'").replace("‘", "'");
+        line.replace(QRegularExpression("[^A-Za-z'\\-\\s]"), "");
+        line.replace(QRegularExpression("\\s*-\\s*"), "-");
+        line.replace(QRegularExpression("-{2,}"), "-");
+        line.replace(QRegularExpression("^-+|-+$"), "");
+        line = line.simplified();
+        
+        if (line.length() < 2) continue;
+        
+        QString w = line.toLower();
+        if (!existingLower.contains(w)) {
+            toAdd.append(w);
+            existingLower.insert(w);
+        }
+    }
+
+    if (toAdd.isEmpty()) return 0;
+
+    for (const QString &w : toAdd) {
+        m_state->userWords.insert(w);
+        m_state->vocabulary.append(w);
+        m_state->knownWords.remove(w);
+        if (!m_state->newWords.contains(w)) {
+            m_state->newWords.insert(w);
+        }
+        QStringList nSeq = m_state->newSequence();
+        if (!nSeq.contains(w)) {
+            nSeq.append(w);
+            m_state->setNewSequence(nSeq);
+        }
+    }
+    
+    m_state->vocabulary.sort(Qt::CaseInsensitive);
+
+    m_eligibleDirty = true;
+    save();
+    emit m_state->vocabularyCountChanged();
+
+    return toAdd.size();
+}
+
+QStringList AppController::findWordsInText(const QString &text)
+{
+    QString t = text;
+    t.replace("’", "'").replace("‘", "'");
+    t.replace(QRegularExpression("[^a-zA-Z'\\-]"), " ");
+    
+    QStringList words = t.split(QRegularExpression("\\s+"), Qt::SkipEmptyParts);
+    QStringList res;
+    QSet<QString> seen;
+    
+    QSet<QString> existingLower;
+    for (const QString &w : m_state->vocabulary) existingLower.insert(w.toLower());
+    
+    for (QString w : words) {
+        // Strip leading/trailing hyphen or quote
+        while(w.startsWith('-') || w.startsWith('\'')) w.remove(0, 1);
+        while(w.endsWith('-') || w.endsWith('\'')) w.chop(1);
+        
+        if (w.length() > 2) {
+            QString lw = w.toLower();
+            if (!seen.contains(lw)) {
+                seen.insert(lw);
+                if (!existingLower.contains(lw) && !m_state->removedWords.contains(lw)) {
+                    res.append(lw);
+                }
+            }
+        }
+    }
+    
+    return res;
+}
+
+QStringList AppController::getExpressions() const
+{
+    // The Python app reads `self.expressions` which is a `list`. 
+    // In our `AppState`, `m_state->expressions` holds this list.
+    return m_state->expressions;
+}
+
+void AppController::addExpression(const QString &phrase, const QVariantList &details)
+{
+    if (phrase.trimmed().isEmpty()) return;
+    
+    QString cleanPhrase = phrase.trimmed();
+    
+    if (!m_state->expressions.contains(cleanPhrase, Qt::CaseInsensitive)) {
+        m_state->expressions.append(cleanPhrase);
+    }
+    
+    // Add to wordDetails
+    updateWordDetails(cleanPhrase, details, "");
+}
 
