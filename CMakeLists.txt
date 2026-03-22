@@ -25,6 +25,15 @@ add_executable(VocaCpp
     src/services/TTSService.cpp
 )
 
+if(APPLE)
+    set(MACOSX_BUNDLE_ICON_FILE "Voca.icns")
+    # Add model file to macOS bundle resources
+    set_source_files_properties("3rdparty/whisper.cpp/models/ggml-base.en.bin"
+        PROPERTIES MACOSX_PACKAGE_LOCATION Resources
+    )
+    target_sources(VocaCpp PRIVATE "3rdparty/whisper.cpp/models/ggml-base.en.bin")
+endif()
+
 set_target_properties(VocaCpp PROPERTIES
     MACOSX_BUNDLE TRUE
     MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/Info.plist"

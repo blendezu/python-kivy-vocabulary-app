@@ -19,10 +19,18 @@ STTService::STTService(QObject *parent) : QObject(parent)
 
     // Try to find the model in standard locations
     QStringList potentialPaths = {
-        QCoreApplication::applicationDirPath() + "/../Resources/ggml-base.en.bin", // macOS bundle
-        QCoreApplication::applicationDirPath() + "/ggml-base.en.bin",             // Linux/Windows
-        "../3rdparty/whisper.cpp/models/ggml-base.en.bin",                        // Dev relative path
-        "/Users/duongtran/Documents/Projects/Voca/VocaCpp/3rdparty/whisper.cpp/models/ggml-base.en.bin" // Absolute fallback
+        // 1. macOS Bundle Resources (standard for release)
+        QCoreApplication::applicationDirPath() + "/../Resources/ggml-base.en.bin",
+        
+        // 2. Relative to executable (e.g. Windows/Linux next to exe)
+        QCoreApplication::applicationDirPath() + "/ggml-base.en.bin",
+        
+        // 3. Dev environment: Relative from build/VocaCpp.app/Contents/MacOS/ to source root
+        // build/VocaCpp.app/Contents/MacOS -> ../../../.. -> project root
+        QCoreApplication::applicationDirPath() + "/../../../../3rdparty/whisper.cpp/models/ggml-base.en.bin",
+
+        // 4. Dev environment: Simple relative path if running from project root
+        "3rdparty/whisper.cpp/models/ggml-base.en.bin",
     };
 
     for (const auto &path : potentialPaths) {
