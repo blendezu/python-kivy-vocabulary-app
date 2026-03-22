@@ -1,4 +1,5 @@
 #include "AppState.h"
+#include <algorithm>
 
 AppState::AppState(QObject *parent) : QObject(parent)
 {
@@ -94,12 +95,19 @@ QStringList AppState::knownSequence() const
     return m_knownSequence;
 }
 
-void AppState::setKnownSequence(const QStringList &seq)
+void AppState::setKnownSequence(const QStringList &val)
 {
-    if (m_knownSequence == seq)
+    if (m_knownSequence == val)
         return;
-    m_knownSequence = seq;
+    m_knownSequence = val;
     emit knownSequenceChanged();
+}
+
+QStringList AppState::knownSequenceDisplay() const
+{
+    QStringList reversed = m_knownSequence;
+    std::reverse(reversed.begin(), reversed.end());
+    return reversed;
 }
 
 QStringList AppState::newSequence() const
@@ -107,12 +115,19 @@ QStringList AppState::newSequence() const
     return m_newSequence;
 }
 
-void AppState::setNewSequence(const QStringList &seq)
+void AppState::setNewSequence(const QStringList &val)
 {
-    if (m_newSequence == seq)
+    if (m_newSequence == val)
         return;
-    m_newSequence = seq;
+    m_newSequence = val;
     emit newSequenceChanged();
+}
+
+QStringList AppState::newSequenceDisplay() const
+{
+    QStringList reversed = m_newSequence;
+    std::reverse(reversed.begin(), reversed.end());
+    return reversed;
 }
 
 QStringList AppState::removedSequence() const

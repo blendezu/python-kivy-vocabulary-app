@@ -41,7 +41,9 @@ class AppState : public QObject
     
     // Sequences
     Q_PROPERTY(QStringList knownSequence READ knownSequence WRITE setKnownSequence NOTIFY knownSequenceChanged)
+    Q_PROPERTY(QStringList knownSequenceDisplay READ knownSequenceDisplay NOTIFY knownSequenceChanged)
     Q_PROPERTY(QStringList newSequence READ newSequence WRITE setNewSequence NOTIFY newSequenceChanged)
+    Q_PROPERTY(QStringList newSequenceDisplay READ newSequenceDisplay NOTIFY newSequenceChanged)
     Q_PROPERTY(QStringList removedSequence READ removedSequence WRITE setRemovedSequence NOTIFY removedSequenceChanged)
 
     
@@ -62,7 +64,13 @@ public:
 
     QString learnOrderMode() const;
     QStringList knownSequence() const;
+    void setKnownSequence(const QStringList &val);
+    QStringList knownSequenceDisplay() const;
+
     QStringList newSequence() const;
+    void setNewSequence(const QStringList &val);
+    QStringList newSequenceDisplay() const;
+
     QStringList removedSequence() const;
 
     
@@ -78,8 +86,6 @@ public:
 
 
     void setLearnOrderMode(const QString &mode);
-    void setKnownSequence(const QStringList &seq);
-    void setNewSequence(const QStringList &seq);
     void setRemovedSequence(const QStringList &seq);
 
 

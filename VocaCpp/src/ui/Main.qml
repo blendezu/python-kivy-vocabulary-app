@@ -275,7 +275,7 @@ ApplicationWindow {
                     clip: true
                     ListView {
                         anchors.fill: parent
-                        model: appState.knownSequence
+                        model: appState.knownSequenceDisplay
                         delegate: Rectangle {
                             width: ListView.view.width
                             height: 35
@@ -379,7 +379,7 @@ ApplicationWindow {
                     clip: true
                     ListView {
                         anchors.fill: parent
-                        model: appState.newSequence
+                        model: appState.newSequenceDisplay
                         delegate: Rectangle {
                             width: ListView.view.width
                             height: 35
