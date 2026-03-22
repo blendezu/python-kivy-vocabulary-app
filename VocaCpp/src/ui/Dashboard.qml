@@ -11,23 +11,34 @@ Popup {
     anchors.centerIn: parent
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
 
-    property var stats: ({})
-    property var last7Dates: []
-    property var last7Counts: []
+    property var summary: ({})
+    property var dailyData: ({ "labels": [], "values": [], "isGood": [], "maxValue": 1 })
+    property var monthlyData: ({ "labels": [], "values": [], "isGood": [], "maxValue": 1 })
+    
+    // State
+    property int dayOffset: 0
+    property int currentYear: new Date().getFullYear()
+    property int maxYear: new Date().getFullYear()
 
     background: Rectangle {
-        color: "#1e232e" // Main dark background
-        border.color: "#3385e6" // Accent border
+        color: "#12141a" // Matched Python theme["bg"]
+        border.color: "#3385e6" // Accent
         border.width: 1
         radius: 8
     }
     
     onOpened: {
-        stats = app.getDashboardStats()
-        if (stats["last7Dates"]) {
-            last7Dates = stats["last7Dates"]
-            last7Counts = stats["last7Counts"]
-        }
+        summary = app.getDashboardSummary()
+        refreshDaily()
+        refreshMonthly()
+    }
+    
+    function refreshDaily() {
+        dailyData = app.getDailyStats(dayOffset)
+    }
+    
+    function refreshMonthly() {
+        monthlyData = app.getMonthlyStats(currentYear)
     }
 
     ColumnLayout {
@@ -55,181 +66,228 @@ Popup {
                 Layout.alignment: Qt.AlignHCenter
                 horizontalAlignment: Text.AlignHCenter
             }
-            Item { Layout.preferredWidth: 40 } // Spacer for centering
+            Item { Layout.preferredWidth: 40 }
         }
 
-        // TabBar
-        TabBar {
-            id: tabBar
+        // Summary Stats Grid
+        GridLayout {
+            columns: 2
             Layout.fillWidth: true
-            background: Rectangle { color: "transparent" }
+            Layout.leftMargin: 40
+            Layout.rightMargin: 40
+            rowSpacing: 5
+            columnSpacing: 20
             
-            TabButton {
-                text: "Daily Check"
-                width: implicitWidth + 20
-                contentItem: Text {
-                    text: parent.text
-                    color: parent.checked ? "#3385e6" : "#c7d1e0"
-                    font.pixelSize: 16
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                }
-                background: Rectangle {
-                    color: "transparent"
-                    Rectangle {
-                        width: parent.width
-                        height: 2
-                        anchors.bottom: parent.bottom
-                        color: parent.parent.checked ? "#3385e6" : "transparent"
-                    }
-                }
-            }
-            TabButton { text: "New vs Old"; font.pixelSize: 16 }
-            TabButton { text: "Retention"; font.pixelSize: 16 }
-            TabButton { text: "Difficulty"; font.pixelSize: 16 }
+            Text { text: "Today:"; color: "#e6f2ff"; font.pixelSize: 18 }
+            Text { text: (summary.today || 0) + " words"; color: "#e6f2ff"; font.pixelSize: 18; font.bold: true }
+
+            Text { text: "This week:"; color: "#e6f2ff"; font.pixelSize: 18 }
+            Text { text: (summary.week || 0) + " words"; color: "#e6f2ff"; font.pixelSize: 18; font.bold: true }
+
+            Text { text: "This month:"; color: "#e6f2ff"; font.pixelSize: 18 }
+            Text { text: (summary.month || 0) + " words"; color: "#e6f2ff"; font.pixelSize: 18; font.bold: true }
+
+            Text { text: "This year:"; color: "#e6f2ff"; font.pixelSize: 18 }
+            Text { text: (summary.year || 0) + " words"; color: "#e6f2ff"; font.pixelSize: 18; font.bold: true }
         }
 
-        StackLayout {
+        Rectangle {
+            Layout.fillWidth: true
+            height: 1
+            color: "#333"
+            Layout.topMargin: 10
+            Layout.bottomMargin: 10
+        }
+
+        // Charts Scroll Area
+        ScrollView {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            currentIndex: tabBar.currentIndex
+            clip: true
+            contentWidth: -1 
 
-            // View 0: Daily Check
-            Item {
-                ColumnLayout {
-                    anchors.fill: parent
-                    spacing: 20
-
-                    Text {
-                        text: "Words Completed: " + (stats["today"] || 0) + " today"
-                        color: "#f2faff"
-                        font.pixelSize: 18
-                        Layout.alignment: Qt.AlignHCenter
-                        Layout.topMargin: 20
+            ColumnLayout {
+                width: parent.width
+                spacing: 30
+                
+                // Chart 1: Last 10 Days
+                ChartComponent {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 320
+                    title: "Last 10 Days"
+                    labels: dailyData.labels
+                    values: dailyData.values
+                    isGood: dailyData.isGood
+                    maxValue: dailyData.maxValue
+                    
+                    canGoBack: true
+                    canGoForward: dayOffset >= 10
+                    
+                    onBackClicked: {
+                        dayOffset += 10;
+                        refreshDaily();
                     }
+                    onForwardClicked: {
+                        dayOffset -= 10;
+                        if(dayOffset < 0) dayOffset = 0;
+                        refreshDaily();
+                    }
+                }
 
-                    // Bar Chart Area
-                    Item {
-                        Layout.fillWidth: true
-                        Layout.fillHeight: true
-                        Layout.margins: 20
-
-                        // Y-axis
-                        Column {
-                            anchors.left: parent.left
-                            anchors.top: parent.top
-                            anchors.bottom: bottomAxis.top
-                            width: 30
-                            spacing: 0
+                // Chart 2: Months [Year]
+                ChartComponent {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 320
+                    title: "Months " + currentYear
+                    labels: monthlyData.labels
+                    values: monthlyData.values
+                    isGood: monthlyData.isGood
+                    maxValue: monthlyData.maxValue
+                    
+                    canGoBack: true
+                    canGoForward: currentYear < maxYear
+                    
+                    onBackClicked: {
+                        currentYear--;
+                        refreshMonthly();
+                    }
+                    onForwardClicked: {
+                        currentYear++;
+                        refreshMonthly();
+                    }
+                }
+                
+                // Legend
+                RowLayout {
+                    Layout.alignment: Qt.AlignHCenter
+                    spacing: 20
+                    
+                    Rectangle { width: 15; height: 15; color: "#59bf59" } // Green
+                    Text { text: "same/more learned"; color: "white"; font.pixelSize: 14 }
+                    
+                    Rectangle { width: 15; height: 15; color: "#d94040" } // Red
+                    Text { text: "less learned"; color: "white"; font.pixelSize: 14 }
+                }
+                
+                Item { height: 20; Layout.fillWidth: true } // Bottom spacer
+            }
+        }
+        
+        Button {
+            text: "Close"
+            Layout.fillWidth: true
+            Layout.preferredHeight: 50
+            palette.button: "#555"
+            palette.buttonText: "white"
+            onClicked: root.close()
+        }
+    }
+    
+    // Internal Chart Component
+    component ChartComponent : Item {
+        property string title
+        property var labels: []
+        property var values: []
+        property var isGood: []
+        property int maxValue: 1
+        
+        property bool canGoBack: true
+        property bool canGoForward: false
+        signal backClicked()
+        signal forwardClicked()
+        
+        ColumnLayout {
+            anchors.fill: parent
+            spacing: 5
+            
+            Text {
+                text: title
+                color: "#f2faff"
+                font.pixelSize: 20
+                Layout.alignment: Qt.AlignHCenter
+            }
+            
+            // The Chart
+            Item {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                Layout.margins: 10
+                
+                // Bars
+                Row {
+                    id: barsRow
+                    anchors.fill: parent
+                    anchors.bottomMargin: 30 // Space for labels
+                    spacing: (width / Math.max(1, values.length)) * 0.2 // 20% spacing
+                    
+                    property real barWidth: (width - (spacing * (values.length - 1))) / Math.max(1, values.length)
+                    
+                    Repeater {
+                        model: values.length
+                        Item {
+                            width: barsRow.barWidth
+                            height: barsRow.height
                             
-                            function getMaxCount() {
-                                let m = 5;
-                                for (let i = 0; i < last7Counts.length; i++) {
-                                    if (last7Counts[i] > m) m = last7Counts[i];
+                            property int val: values[index] || 0
+                            property bool good: isGood[index] !== undefined ? isGood[index] : true
+                            property int max: maxValue > 0 ? maxValue : 1
+                            
+                            Rectangle {
+                                width: parent.width
+                                color: good ? "#59bf59" : "#d94040"
+                                radius: 2
+                                anchors.bottom: parent.bottom
+                                height: (parent.height * val) / max
+                                
+                                // Value Label above bar
+                                Text {
+                                    text: val > 0 ? val : ""
+                                    color: "white"
+                                    font.pixelSize: 12
+                                    anchors.horizontalCenter: parent.horizontalCenter
+                                    anchors.bottom: parent.top
+                                    anchors.bottomMargin: 2
+                                    visible: val > 0
                                 }
-                                return m;
                             }
                             
-                            Repeater {
-                                model: 5
-                                Item {
-                                    width: 30
-                                    height: parent.height / 4
-                                    Text {
-                                        anchors.verticalCenter: parent.top
-                                        anchors.right: parent.right
-                                        anchors.rightMargin: 5
-                                        color: "#8c8ce6"
-                                        font.pixelSize: 12
-                                        text: {
-                                            let max = parent.parent.getMaxCount()
-                                            let val = max - (index * max / 4);
-                                            return Math.round(val);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        // Bars
-                        Row {
-                            id: chartArea
-                            anchors.left: parent.left
-                            anchors.leftMargin: 30
-                            anchors.right: parent.right
-                            anchors.top: parent.top
-                            anchors.bottom: bottomAxis.top
-                            spacing: (width - (last7Counts.length * 30)) / (last7Counts.length + 1)
-                            
-                            Repeater {
-                                model: last7Counts
-                                Item {
-                                    width: 30
-                                    height: chartArea.height
-                                    
-                                    Rectangle {
-                                        anchors.bottom: parent.bottom
-                                        width: parent.width
-                                        color: "#d97d7d" // chart color from screenshot
-                                        radius: 4
-                                        
-                                        function getMax() {
-                                            let m = 5;
-                                            for (let i = 0; i < last7Counts.length; i++) {
-                                                if (last7Counts[i] > m) m = last7Counts[i];
-                                            }
-                                            return m;
-                                        }
-                                        
-                                        height: {
-                                            let max = getMax();
-                                            if (max === 0) return 0;
-                                            return (modelData / max) * chartArea.height;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        // X-axis (Dates)
-                        Row {
-                            id: bottomAxis
-                            anchors.left: chartArea.left
-                            anchors.right: chartArea.right
-                            anchors.bottom: parent.bottom
-                            height: 30
-                            spacing: chartArea.spacing
-                            
-                            Repeater {
-                                model: last7Dates
-                                Item {
-                                    width: 30
-                                    height: 30
-                                    Text {
-                                        anchors.centerIn: parent
-                                        color: "#8c8ce6"
-                                        font.pixelSize: 12
-                                        text: modelData
-                                        rotation: -45
-                                    }
-                                }
+                            // X-Axis Label below bar
+                            Text {
+                                text: labels[index] || ""
+                                color: "#aaa"
+                                font.pixelSize: 11
+                                anchors.top: parent.bottom
+                                anchors.topMargin: 5
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                // Rotate slightly if needed, but 10 days usually fit
                             }
                         }
                     }
                 }
             }
-
-            // View 1: New vs Old
-            Item {
-                Text { anchors.centerIn: parent; text: "New vs Old - Coming Soon"; color: "#f2faff" }
-            }
-            // View 2: Retention
-            Item {
-                Text { anchors.centerIn: parent; text: "Retention - Coming Soon"; color: "#f2faff" }
-            }
-            // View 3: Difficulty
-            Item {
-                Text { anchors.centerIn: parent; text: "Difficulty - Coming Soon"; color: "#f2faff" }
+            
+            // Navigation
+            RowLayout {
+                Layout.alignment: Qt.AlignHCenter
+                spacing: 20
+                
+                Button {
+                    text: "<"
+                    enabled: canGoBack
+                    palette.button: "#555"
+                    palette.buttonText: "white"
+                    onClicked: backClicked()
+                    Layout.preferredWidth: 60
+                }
+                
+                Button {
+                    text: ">"
+                    enabled: canGoForward
+                    palette.button: "#555"
+                    palette.buttonText: "white"
+                    onClicked: forwardClicked()
+                    Layout.preferredWidth: 60
+                }
             }
         }
     }

@@ -51,8 +51,10 @@ public:
 
 
     // Stats
-    Q_INVOKABLE QVariantMap getDashboardStats() const;
-    
+    Q_INVOKABLE QVariantMap getDashboardSummary() const;
+    Q_INVOKABLE QVariantMap getDailyStats(int offsetDay) const;
+    Q_INVOKABLE QVariantMap getMonthlyStats(int year) const;
+
     // Editor
     Q_INVOKABLE void updateWordDetails(const QString &word, const QVariantList &details, const QString &ipa);
     Q_INVOKABLE QVariantList getWordDetails(const QString &word) const;
@@ -69,6 +71,7 @@ public:
     Q_INVOKABLE QStringList getExpressions() const;
     Q_INVOKABLE QVariantList getExpressionsWithDetails(const QString &query) const;
     Q_INVOKABLE void addExpression(const QString &phrase, const QVariantList &details);
+    Q_INVOKABLE int addWords(const QStringList &words);
 
 private:
     void rebuildEligiblePool();

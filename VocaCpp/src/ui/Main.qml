@@ -28,6 +28,12 @@ ApplicationWindow {
             color: control.textColor
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
+            wrapMode: Text.WordWrap
+            elide: Text.ElideRight
+            fontSizeMode: Text.Fit
+            minimumPixelSize: 10
+            rightPadding: 4
+            leftPadding: 4
         }
         background: Rectangle {
             color: control.down ? Qt.darker(control.bgColor, 1.2) : (control.hovered ? Qt.lighter(control.bgColor, 1.1) : control.bgColor)

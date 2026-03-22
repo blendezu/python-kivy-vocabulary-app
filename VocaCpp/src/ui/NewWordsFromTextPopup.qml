@@ -40,12 +40,25 @@ Popup {
                 onClicked: {
                     var res = app.findWordsInText(inputArea.text)
                     if (wordListPopup) {
+                        // Reset properties first
+                        wordListPopup.allowAdd = false
+                        try { wordListPopup.addClicked.disconnect(root.handleAddAll) } catch(e) {}
+
                         if (!res || res.length === 0) {
                             wordListPopup.wordList = []
                             wordListPopup.title = "No new words found"
                         } else {
                             wordListPopup.wordList = res
-                            wordListPopup.title = "Words from text"
+                            wordListPopup.title = "Words from text (Found: " + res.length + ")"
+                            wordListPopup.allowAdd = true
+                            
+                            // Define handler to be connected
+                            root.handleAddAll = function() {
+                                var count = app.addWords(res)
+                                wordListPopup.close()
+                                console.log("Added " + count + " words.")
+                            }
+                            wordListPopup.addClicked.connect(root.handleAddAll)
                         }
                         wordListPopup.open()
                     }
@@ -54,4 +67,6 @@ Popup {
             }
         }
     }
+    // Helper property to store the handler reference so we can disconnect it
+    property var handleAddAll: null
 }

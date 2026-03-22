@@ -14,8 +14,10 @@ Popup {
     property string title: "Word List"
     property var wordList: [] // string list
     property bool allowEdit: true
+    property bool allowAdd: false
     
     signal wordSelected(string word)
+    signal addClicked()
 
     background: Rectangle {
         color: "#1e1e1e"
@@ -92,12 +94,23 @@ Popup {
             }
         }
         
-        Button {
-            text: "Close"
+        RowLayout {
             Layout.alignment: Qt.AlignHCenter
-            onClicked: root.close()
-            palette.button: "#555555"
-            palette.buttonText: "white"
+
+            Button {
+                text: "Close"
+                onClicked: root.close()
+                palette.button: "#555555"
+                palette.buttonText: "white"
+            }
+
+            Button {
+                text: "Add"
+                visible: root.allowAdd
+                onClicked: root.addClicked()
+                palette.button: "#007ACC"
+                palette.buttonText: "white"
+            }
         }
     }
     

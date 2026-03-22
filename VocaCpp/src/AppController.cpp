@@ -473,59 +473,146 @@ void AppController::save()
     m_store->saveSync();
 }
 
-QVariantMap AppController::getDashboardStats() const
+QVariantMap AppController::getDashboardSummary() const
 {
     QVariantMap stats;
-    
     QDate today = QDate::currentDate();
-    int dayCount = 0;
-    int weekCount = 0;
-    int monthCount = 0;
-    int yearCount = 0;
     
-    // QDate::weekNumber() helps but let's do simple day diffs for "This Week" (Mon-Sun)
-    QDate weekStart = today.addDays(-(today.dayOfWeek() - 1));
+    // Python week start: monday (0)
+    int dayOfWeek = today.dayOfWeek(); // 1=Mon, 7=Sun
+    QDate weekStart = today.addDays(-(dayOfWeek - 1));
     QDate monthStart(today.year(), today.month(), 1);
     QDate yearStart(today.year(), 1, 1);
     
-    QVariantList last7Dates;
-    QVariantList last7Counts;
-    QMap<QDate, int> dailyCounts;
-    for (int i = 6; i >= 0; --i) {
-        dailyCounts[today.addDays(-i)] = 0;
-    }
-    
-    auto it = m_state->learnedLog.constBegin();
-    while (it != m_state->learnedLog.constEnd()) {
-        // Format YYYY-MM-DD
-        QDate d = QDate::fromString(it.value(), Qt::ISODate);
+    int cToday = 0;
+    int cWeek = 0;
+    int cMonth = 0;
+    int cYear = 0;
+
+    auto i = m_state->learnedLog.constBegin();
+    while (i != m_state->learnedLog.constEnd()) {
+        QDate d = QDate::fromString(i.value(), Qt::ISODate);
         if (d.isValid()) {
-            if (d == today) dayCount++;
-            if (d >= weekStart && d <= today) weekCount++;
-            if (d >= monthStart && d <= today) monthCount++;
-            if (d >= yearStart && d <= today) yearCount++;
-            
-            if (dailyCounts.contains(d)) {
-                dailyCounts[d]++;
-            }
+            if (d == today) cToday++;
+            if (d >= weekStart && d <= today) cWeek++;
+            if (d >= monthStart && d <= today) cMonth++;
+            if (d >= yearStart && d <= today) cYear++;
         }
-        ++it;
+        ++i;
     }
     
-    for (int i = 6; i >= 0; --i) {
-        QDate d = today.addDays(-i);
-        last7Dates.append(d.toString("dd/MM"));
-        last7Counts.append(dailyCounts[d]);
-    }
-    
-    stats["today"] = dayCount;
-    stats["week"] = weekCount;
-    stats["month"] = monthCount;
-    stats["year"] = yearCount;
-    stats["last7Dates"] = last7Dates;
-    stats["last7Counts"] = last7Counts;
-    
+    stats["today"] = cToday;
+    stats["week"] = cWeek;
+    stats["month"] = cMonth;
+    stats["year"] = cYear;
     return stats;
+}
+
+QVariantMap AppController::getDailyStats(int offsetDay) const
+{
+    QVariantMap result;
+    QDate today = QDate::currentDate();
+    QDate end = today.addDays(-offsetDay);
+    QDate start = end.addDays(-9); // 10 days total
+    
+    // Initialize map
+    QMap<QDate, int> counts;
+    for (QDate d = start; d <= end; d = d.addDays(1)) {
+        counts[d] = 0;
+    }
+
+    // Fill counts
+    auto i = m_state->learnedLog.constBegin();
+    while (i != m_state->learnedLog.constEnd()) {
+        QDate d = QDate::fromString(i.value(), Qt::ISODate);
+        if (d.isValid() && d >= start && d <= end) {
+            counts[d]++;
+        }
+        ++i;
+    }
+
+    QVariantList labels;
+    QVariantList values;
+    int maxVal = 0;
+
+    for (QDate d = start; d <= end; d = d.addDays(1)) {
+        labels.append(d.toString("dd.MM"));
+        int v = counts[d];
+        values.append(v);
+        if (v > maxVal) maxVal = v;
+    }
+    
+    result["labels"] = labels;
+    result["values"] = values;
+    result["maxValue"] = maxVal;
+    
+    // We also need colors: if (val >= prev_val) -> good, else -> bad
+    // But color logic is better handled in QML or passed as array of bool "isGood"
+    // Python: good if (prev is None or v >= prev) else bad
+    
+    QVariantList isGood;
+    int prev = -1;
+    for (const QVariant &val : values) {
+        int v = val.toInt();
+        if (prev == -1 || v >= prev) {
+            isGood.append(true);
+        } else {
+            isGood.append(false);
+        }
+        prev = v;
+    }
+    result["isGood"] = isGood;
+
+    return result;
+}
+
+QVariantMap AppController::getMonthlyStats(int year) const
+{
+    QVariantMap result;
+    QMap<int, int> counts; // month 1-12
+    for (int m = 1; m <= 12; ++m) counts[m] = 0;
+    
+    auto i = m_state->learnedLog.constBegin();
+    while (i != m_state->learnedLog.constEnd()) {
+        QDate d = QDate::fromString(i.value(), Qt::ISODate);
+        if (d.isValid() && d.year() == year) {
+            counts[d.month()]++;
+        }
+        ++i;
+    }
+
+    QVariantList labels;
+    QVariantList values;
+    int maxVal = 0;
+    
+    QStringList monthNames = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+                              "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+                              
+    for (int m = 1; m <= 12; ++m) {
+        labels.append(monthNames[m-1]);
+        int v = counts[m];
+        values.append(v);
+        if (v > maxVal) maxVal = v;
+    }
+    
+    result["labels"] = labels;
+    result["values"] = values;
+    result["maxValue"] = maxVal;
+
+    QVariantList isGood;
+    int prev = -1;
+    for (const QVariant &val : values) {
+        int v = val.toInt();
+        if (prev == -1 || v >= prev) {
+            isGood.append(true);
+        } else {
+            isGood.append(false);
+        }
+        prev = v;
+    }
+    result["isGood"] = isGood;
+    
+    return result;
 }
 
 void AppController::updateWordDetails(const QString &word, const QVariantList &details, const QString &ipa)
@@ -919,24 +1006,80 @@ int AppController::addNewWordsFromText(const QString &text)
     return toAdd.size();
 }
 
+int AppController::addWords(const QStringList &words)
+{
+    QSet<QString> existingLower;
+    // We must rebuild existing set because m_state->vocabulary may change
+    for (const QString &w : m_state->vocabulary) existingLower.insert(w.toLower());
+    for (const QString &w : m_state->removedWords) existingLower.insert(w.toLower());
+
+    QStringList toAdd;
+    // Use QSet for quicker uniqueness check within the batch
+    QSet<QString> batchUnique;
+
+    for (const QString &raw : words) {
+        QString w = raw.trimmed().toLower();
+        if (w.isEmpty()) continue;
+        if (w.length() < 2) continue; // Minimum length check
+
+        if (!existingLower.contains(w) && !batchUnique.contains(w)) {
+            toAdd.append(w);
+            batchUnique.insert(w);
+        }
+    }
+
+    if (toAdd.isEmpty()) return 0;
+    
+    // Process new words
+    QStringList nSeq = m_state->newSequence();
+
+    for (const QString &w : toAdd) {
+        m_state->userWords.insert(w);
+        m_state->vocabulary.append(w);
+        
+        // Ensure not in knownWords
+        m_state->knownWords.remove(w);
+
+        if (!m_state->newWords.contains(w)) {
+            m_state->newWords.insert(w);
+        }
+        
+        // Add to newSequence if not present
+        if (!listContainsCI(nSeq, w)) {
+            nSeq.append(w);
+        }
+    }
+    
+    m_state->setNewSequence(nSeq);
+    
+    // Sort vocabulary
+    m_state->vocabulary.sort(Qt::CaseInsensitive);
+
+    m_eligibleDirty = true;
+    save();
+    emit m_state->vocabularyCountChanged();
+
+    return toAdd.size();
+}
+
 QStringList AppController::findWordsInText(const QString &text)
 {
-    QString t = text;
-    t.replace("’", "'").replace("‘", "'");
-    t.replace(QRegularExpression("[^a-zA-Z'\\-]"), " ");
+    // Match Python logic: re.findall(r"[A-Za-z]+(?:[-'][A-Za-z]+)*", text)
+    // allowing words like "far-out", "it's" but avoiding garbage
+    QRegularExpression re("[A-Za-z]+(?:[-'][A-Za-z]+)*");
+    QRegularExpressionMatchIterator i = re.globalMatch(text);
     
-    QStringList words = t.split(QRegularExpression("\\s+"), Qt::SkipEmptyParts);
     QStringList res;
     QSet<QString> seen;
     
     QSet<QString> existingLower;
     for (const QString &w : m_state->vocabulary) existingLower.insert(w.toLower());
     
-    for (QString w : words) {
-        // Strip leading/trailing hyphen or quote
-        while(w.startsWith('-') || w.startsWith('\'')) w.remove(0, 1);
-        while(w.endsWith('-') || w.endsWith('\'')) w.chop(1);
+    while (i.hasNext()) {
+        QRegularExpressionMatch match = i.next();
+        QString w = match.captured(0);
         
+        // Remove length checks if you want short words, but Python had > 2
         if (w.length() > 2) {
             QString lw = w.toLower();
             if (!seen.contains(lw)) {
