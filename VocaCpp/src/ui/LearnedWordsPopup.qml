@@ -97,6 +97,7 @@ Popup {
                                 cursorShape: Qt.PointingHandCursor
                                 onClicked: {
                                     if (editPopupRef) {
+                                        editPopupRef.fromLearn = false
                                         editPopupRef.wordToEdit = modelData.word
                                         editPopupRef.open()
                                     }

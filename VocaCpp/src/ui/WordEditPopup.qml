@@ -19,6 +19,8 @@ Popup {
     }
 
     property string wordToEdit: ""
+    property bool fromLearn: false
+    property bool advancedViaNext: false
     property bool isTongueTwister: false
     property var posTags: ["n", "v", "adj", "adv", "prep", "conj"]
 
@@ -110,24 +112,45 @@ Popup {
         meaningRows = []
     }
 
-    function loadWord(word) {
-        if (!word) return
-        wordToEdit = word
-        wordInput.text = word
-        ipaField.text = app.state.wordIpa[word.toLowerCase()] || ""
-        clearAll()
-        var d = app.state.wordDetails[word.toLowerCase()]
+    function loadWord(newWord) {
+        if (!newWord) return
+        console.log("loadWord called for: " + newWord)
+        
+        wordToEdit = newWord
+        wordInput.text = newWord
+        
+        // Explicitly clear IPA first
+        ipaField.text = ""
+        var fetchedIpa = app.getWordIpa(newWord)
+        if (fetchedIpa) ipaField.text = fetchedIpa
+        
+        var d = app.getWordDetails(newWord)
+        // Debug what we found
+        console.log("Details found for " + newWord + ": " + JSON.stringify(d))
+
+        var dataList = []
         if (d && d.length > 0) {
-            for (var i = 0; i < d.length; i++) {
-                var exs = d[i].examples && d[i].examples.length > 0 ? d[i].examples : [""]
-                addMeaningRow(d[i].meaning || "", exs, d[i].pos || [])
-            }
+            dataList = d
         } else {
-            addMeaningRow("", [""], [])
+            console.log("No details found, using empty template")
+            dataList = [{ meaning: "", examples: [""], pos: [] }]
         }
-        // Sicherheitsnetz: mindestens ein Feld immer
-        if (meaningRows.length === 0) {
-            addMeaningRow("", [""], [])
+
+        // 1. DESTROY ALL existing rows to ensure clean state
+        console.log("Destroying " + meaningRows.length + " existing rows")
+        while (meaningRows.length > 0) {
+            var r = meaningRows.pop()
+            r.row.destroy()
+        }
+
+        // 2. Create new rows based on data
+        console.log("Creating " + dataList.length + " new rows")
+        for (var i = 0; i < dataList.length; i++) {
+            var dataItem = dataList[i]
+            // We create a fresh row for every item
+            addMeaningRow(dataItem.meaning || "", 
+                          dataItem.examples && dataItem.examples.length > 0 ? dataItem.examples : [""], 
+                          dataItem.pos || [])
         }
     }
 
@@ -150,11 +173,41 @@ Popup {
         return result
     }
 
-    onOpened: loadWord(wordToEdit)
+    onOpened: {
+        advancedViaNext = false
+        loadWord(wordToEdit)
+    }
+
+    onClosed: {
+        if (fromLearn && !advancedViaNext) {
+            app.nextLearnWord()
+        }
+        advancedViaNext = false
+        fromLearn = false
+    }
+
 
     // ─── Component definitions ───────────────────────────────────────────────
+
+    // ─── Timer for loading new word ─────────────────────────────────────────
+    Timer {
+        id: loadTimer
+        property string nextWord: ""
+        interval: 10
+        repeat: false
+        onTriggered: {
+            if (nextWord && nextWord !== "") {
+                loadWord(nextWord)
+            } else {
+                root.close()
+            }
+        }
+    }
+
     Component {
         id: posButtonComp
+
+    // ─── UI ─────────────────────────────────────────────────────────────────
         Rectangle {
             property string tagName: ""
             property bool active: false
@@ -367,20 +420,38 @@ Popup {
                                 addMeaningRow("", [""], [])
                             } else if (lbl === "Save") {
                                 app.updateWordDetails(wordToEdit, collectData(), ipaField.text)
-                                if (app.state.learnCurrentWord === wordToEdit) {
+
+                                if (fromLearn) {
                                     app.markWordKnown(wordToEdit)
+                                    var nw = app.nextLearnWord()
+                                    advancedViaNext = true
+                                    
+                                    if (nw && nw !== "") {
+                                        loadTimer.nextWord = nw
+                                        loadTimer.start()
+                                    } else {
+                                        root.close()
+                                    }
+
+                                } else {
+                                    root.close()
                                 }
+                            } else if (lbl === "Back") {
                                 root.close()
                             } else if (lbl === "Next") {
-                                app.updateWordDetails(wordToEdit, collectData(), ipaField.text)
-                                if (app.state.learnCurrentWord === wordToEdit) {
-                                    app.markWordKnown(wordToEdit)
+                                if (fromLearn) {
+                                    var nw = app.nextLearnWord()
+                                    advancedViaNext = true
+                                    if (nw && nw !== "") {
+                                        loadTimer.nextWord = nw
+                                        loadTimer.start()
+                                    } else {
+                                        root.close()
+                                    }
+                                } else {
+                                    root.close()
                                 }
-                                app.nextLearnWord()
-                                var nw = app.state.learnCurrentWord
-                                if (!nw) root.close()
-                                else loadWord(nw)
-                            } else {
+                            } else if (lbl === "Close") {
                                 root.close()
                             }
                         }

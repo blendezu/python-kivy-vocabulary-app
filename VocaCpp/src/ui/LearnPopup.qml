@@ -80,6 +80,7 @@ Popup {
                 cursorShape: app.state.learnCurrentWord ? Qt.PointingHandCursor : Qt.ArrowCursor
                 onClicked: {
                     if (app.state.learnCurrentWord) {
+                        editPopup.fromLearn = true
                         editPopup.wordToEdit = app.state.learnCurrentWord
                         editPopup.open()
                     }

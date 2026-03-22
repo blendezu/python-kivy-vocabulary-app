@@ -6,9 +6,50 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
+#include <QJsonParseError>
 #include <QFileInfo>
 #include <QRegularExpression>
 #include <algorithm>
+
+namespace {
+inline QString toKey(const QString &value) { return value.toLower(); }
+
+inline void insertLower(QSet<QString> &set, const QString &value) {
+    set.insert(toKey(value));
+}
+
+inline void removeLower(QSet<QString> &set, const QString &value) {
+    set.remove(toKey(value));
+}
+
+inline bool listContainsCI(const QStringList &list, const QString &value) {
+    for (const QString &item : list) {
+        if (item.compare(value, Qt::CaseInsensitive) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+inline bool removeFromListCI(QStringList &list, const QString &value) {
+    bool removed = false;
+    for (int i = list.size() - 1; i >= 0; --i) {
+        if (list[i].compare(value, Qt::CaseInsensitive) == 0) {
+            list.removeAt(i);
+            removed = true;
+        }
+    }
+    return removed;
+}
+
+inline void replaceInListCI(QStringList &list, const QString &oldValue, const QString &newValue) {
+    for (QString &item : list) {
+        if (item.compare(oldValue, Qt::CaseInsensitive) == 0) {
+            item = newValue;
+        }
+    }
+}
+}
 
 AppController::AppController(QObject *parent) : QObject(parent)
 {
@@ -25,36 +66,56 @@ AppController::AppController(QObject *parent) : QObject(parent)
         qDebug() << "No progress found, starting fresh.";
     }
 
-    // Always load vocabulary from the Cambridge B1 JSON first (like Python's load_vocabulary_from_json)
-    {
-        // Look for the JSON next to the project root (VocaCpp/b1_word_from_cambridge.json)
-        // __FILE__ is VocaCpp/src/AppController.cpp, so go up one level to VocaCpp/
-        QString vocabJsonPath = QFileInfo(QString(QStringLiteral(__FILE__))).absolutePath();
-        vocabJsonPath += "/../b1_word_from_cambridge.json";
-        QFile file(vocabJsonPath);
-        if (file.open(QIODevice::ReadOnly)) {
-            QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
-            if (doc.isObject()) {
-                QJsonArray wordsArray = doc.object().value("words").toArray();
-                QSet<QString> seen;
-                m_state->vocabulary.clear();
-                for (const QJsonValue &val : wordsArray) {
-                    QString w = val.toString().trimmed();
-                    if (w.length() < 2) continue;
-                    QString lw = w.toLower();
-                    if (!seen.contains(lw)) {
-                        seen.insert(lw);
-                        m_state->vocabulary.append(w);
-                    }
-                }
-                std::sort(m_state->vocabulary.begin(), m_state->vocabulary.end(), [](const QString &a, const QString &b){
-                    return a.compare(b, Qt::CaseInsensitive) < 0;
-                });
-                qDebug() << "Loaded" << m_state->vocabulary.size() << "words from Cambridge list.";
-            }
-            file.close();
-        } else {
-            qWarning() << "Could not open Cambridge JSON at:" << vocabJsonPath;
+    auto parseVocabulary = [this](const QByteArray &raw, const QString &source) -> bool {
+        QJsonParseError err;
+        QJsonDocument doc = QJsonDocument::fromJson(raw, &err);
+        if (err.error != QJsonParseError::NoError || !doc.isObject()) {
+            qWarning() << "Failed to parse vocabulary JSON from" << source << ":" << err.errorString();
+            return false;
+        }
+
+        QJsonArray wordsArray = doc.object().value("words").toArray();
+        if (wordsArray.isEmpty()) {
+            qWarning() << "Vocabulary JSON" << source << "does not contain a 'words' array";
+            return false;
+        }
+
+        QSet<QString> seen;
+        QStringList vocab;
+        vocab.reserve(wordsArray.size());
+        for (const QJsonValue &val : wordsArray) {
+            QString w = val.toString().trimmed();
+            if (w.length() < 2) continue;
+            QString lw = w.toLower();
+            if (seen.contains(lw)) continue;
+            seen.insert(lw);
+            vocab.append(w);
+        }
+        std::sort(vocab.begin(), vocab.end(), [](const QString &a, const QString &b) {
+            return a.compare(b, Qt::CaseInsensitive) < 0;
+        });
+        m_state->vocabulary = vocab;
+        qDebug() << "Loaded" << m_state->vocabulary.size() << "words from" << source;
+        return true;
+    };
+
+    auto tryLoadFromPath = [&](const QString &path) -> bool {
+        QFile file(path);
+        if (!file.open(QIODevice::ReadOnly)) {
+            return false;
+        }
+        QByteArray raw = file.readAll();
+        file.close();
+        return parseVocabulary(raw, path);
+    };
+
+    bool vocabLoaded = tryLoadFromPath(":/b1_word_from_cambridge.json");
+    if (!vocabLoaded) {
+        // Fallback: look for the JSON next to the project root (developer builds)
+        QString vocabJsonPath = QFileInfo(QStringLiteral(__FILE__)).absolutePath() + "/../b1_word_from_cambridge.json";
+        vocabLoaded = tryLoadFromPath(vocabJsonPath);
+        if (!vocabLoaded) {
+            qWarning() << "Could not load Cambridge vocabulary JSON from resources or" << vocabJsonPath;
         }
     }
 
@@ -130,11 +191,11 @@ void AppController::requestNextWord()
             !m_state->removedWords.contains(lp)) {
             
             // Auto mark known
-            m_state->knownWords.insert(prev); // Store original case if possible, or lower
+            m_state->knownWords.insert(lp);
             
             // Add to sequence if not there
             QStringList seq = m_state->knownSequence();
-            if (!seq.contains(prev)) {
+            if (!listContainsCI(seq, prev)) {
                 seq.append(prev);
                 m_state->setKnownSequence(seq);
             }
@@ -161,27 +222,34 @@ void AppController::markWordKnown(const QString &word)
     if (word.isEmpty()) return;
     QString lw = word.toLower();
     
-    m_state->knownWords.insert(word); // Insert distinct casing
-    m_state->newWords.remove(word);
-    m_state->removedWords.remove(lw); // clean cleanup
+    insertLower(m_state->knownWords, word);
+    removeLower(m_state->newWords, word);
+    removeLower(m_state->removedWords, word);
     
     // Update sequences
     QStringList kSeq = m_state->knownSequence();
-    if (!kSeq.contains(word)) {
+    if (!listContainsCI(kSeq, word)) {
         kSeq.append(word);
         m_state->setKnownSequence(kSeq);
     }
     
     QStringList nSeq = m_state->newSequence();
-    if (nSeq.contains(word)) {
-        nSeq.removeAll(word);
+    if (removeFromListCI(nSeq, word)) {
         m_state->setNewSequence(nSeq);
     }
     
     // Track in learned session (so it appears in the "Learned words" list)
     m_state->learnedLog.insert(lw, QDate::currentDate().toString(Qt::ISODate));
-    if (!m_state->learnedSession.contains(lw)) {
-        m_state->learnedSession.append(lw);
+    // Python preserves original casing in learned_session, but uses lowercase keys in learned_log.
+    bool has = false;
+    for (const QString &x : std::as_const(m_state->learnedSession)) {
+        if (x.compare(word, Qt::CaseInsensitive) == 0) {
+            has = true;
+            break;
+        }
+    }
+    if (!has) {
+        m_state->learnedSession.append(word);
     }
 
     m_eligibleDirty = true;
@@ -193,20 +261,19 @@ void AppController::markWordNew(const QString &word)
     if (word.isEmpty()) return;
     QString lw = word.toLower();
 
-    m_state->newWords.insert(word);
-    m_state->knownWords.remove(word);
-    m_state->removedWords.remove(lw);
+    insertLower(m_state->newWords, word);
+    removeLower(m_state->knownWords, word);
+    removeLower(m_state->removedWords, word);
     
     // Update sequences
     QStringList nSeq = m_state->newSequence();
-    if (!nSeq.contains(word)) {
+    if (!listContainsCI(nSeq, word)) {
         nSeq.append(word);
         m_state->setNewSequence(nSeq);
     }
     
     QStringList kSeq = m_state->knownSequence();
-    if (kSeq.contains(word)) {
-        kSeq.removeAll(word);
+    if (removeFromListCI(kSeq, word)) {
         m_state->setKnownSequence(kSeq);
     }
 
@@ -231,13 +298,13 @@ void AppController::moveWordToKnown(const QString &word)
     if (word.isEmpty()) return;
     QString lw = word.toLower();
 
-    m_state->newWords.remove(word);
+    removeLower(m_state->newWords, word);
     QStringList nSeq = m_state->newSequence();
-    if (nSeq.removeAll(word)) m_state->setNewSequence(nSeq);
+    if (removeFromListCI(nSeq, word)) m_state->setNewSequence(nSeq);
 
-    m_state->knownWords.insert(word);
+    insertLower(m_state->knownWords, word);
     QStringList kSeq = m_state->knownSequence();
-    if (!kSeq.contains(word)) {
+    if (!listContainsCI(kSeq, word)) {
         kSeq.append(word);
         m_state->setKnownSequence(kSeq);
     }
@@ -251,13 +318,13 @@ void AppController::moveWordToNew(const QString &word)
     if (word.isEmpty()) return;
     QString lw = word.toLower();
 
-    m_state->knownWords.remove(word);
+    removeLower(m_state->knownWords, word);
     QStringList kSeq = m_state->knownSequence();
-    if (kSeq.removeAll(word)) m_state->setKnownSequence(kSeq);
+    if (removeFromListCI(kSeq, word)) m_state->setKnownSequence(kSeq);
 
-    m_state->newWords.insert(word);
+    insertLower(m_state->newWords, word);
     QStringList nSeq = m_state->newSequence();
-    if (!nSeq.contains(word)) {
+    if (!listContainsCI(nSeq, word)) {
         nSeq.append(word);
         m_state->setNewSequence(nSeq);
     }
@@ -272,20 +339,20 @@ void AppController::removeWord(const QString &word)
     QString lw = word.toLower();
 
     m_state->removedWords.insert(lw);
-    m_state->knownWords.remove(word);
-    m_state->newWords.remove(word);
+    removeLower(m_state->knownWords, word);
+    removeLower(m_state->newWords, word);
 
     // Update sequences
     QStringList rSeq = m_state->removedSequence();
-    rSeq.removeAll(word);
+    removeFromListCI(rSeq, word);
     rSeq.prepend(word);
     m_state->setRemovedSequence(rSeq);
     
     QStringList kSeq = m_state->knownSequence();
-    if (kSeq.removeAll(word)) m_state->setKnownSequence(kSeq);
+    if (removeFromListCI(kSeq, word)) m_state->setKnownSequence(kSeq);
     
     QStringList nSeq = m_state->newSequence();
-    if (nSeq.removeAll(word)) m_state->setNewSequence(nSeq);
+    if (removeFromListCI(nSeq, word)) m_state->setNewSequence(nSeq);
     
     m_eligibleDirty = true;
     m_store->saveAsync();
@@ -297,18 +364,18 @@ void AppController::restoreRemovedWord(const QString &word)
     QString lw = word.toLower();
 
     // 1) Remove from removed list
-    m_state->removedWords.remove(lw);
+    removeLower(m_state->removedWords, word);
     QStringList rSeq = m_state->removedSequence();
-    if (rSeq.removeAll(word)) m_state->setRemovedSequence(rSeq);
+    if (removeFromListCI(rSeq, word)) m_state->setRemovedSequence(rSeq);
 
     // 2) Remove from new/known to be neutral
-    m_state->knownWords.remove(word);
-    m_state->newWords.remove(word);
+    removeLower(m_state->knownWords, word);
+    removeLower(m_state->newWords, word);
 
     QStringList kSeq = m_state->knownSequence();
-    if (kSeq.removeAll(word)) m_state->setKnownSequence(kSeq);
+    if (removeFromListCI(kSeq, word)) m_state->setKnownSequence(kSeq);
     QStringList nSeq = m_state->newSequence();
-    if (nSeq.removeAll(word)) m_state->setNewSequence(nSeq);
+    if (removeFromListCI(nSeq, word)) m_state->setNewSequence(nSeq);
 
     // 3) Display it in main screen (assuming it becomes current word)
     m_state->setCurrentWord(word);
@@ -340,12 +407,12 @@ void AppController::correctWord(const QString &oldWord, const QString &newWord)
     }
 
     // Word Sets
-    if (m_state->knownWords.remove(oldWord)) {
-        m_state->knownWords.insert(newWord);
+    if (m_state->knownWords.remove(oldLower)) {
+        insertLower(m_state->knownWords, newWord);
     }
-    if (m_state->newWords.remove(oldWord)) {
-        if (!m_state->knownWords.contains(newWord)) {
-            m_state->newWords.insert(newWord);
+    if (m_state->newWords.remove(oldLower)) {
+        if (!m_state->knownWords.contains(newLower)) {
+            insertLower(m_state->newWords, newWord);
         }
     }
     
@@ -373,22 +440,22 @@ void AppController::correctWord(const QString &oldWord, const QString &newWord)
 
     // Update the UI sequences
     QStringList kSeq = m_state->knownSequence();
-    if (kSeq.contains(oldWord)) {
-        kSeq.replace(kSeq.indexOf(oldWord), newWord);
+    if (listContainsCI(kSeq, oldWord)) {
+        replaceInListCI(kSeq, oldWord, newWord);
         kSeq.sort(Qt::CaseInsensitive);
         m_state->setKnownSequence(kSeq);
     }
 
     QStringList nSeq = m_state->newSequence();
-    if (nSeq.contains(oldWord)) {
-        nSeq.replace(nSeq.indexOf(oldWord), newWord);
+    if (listContainsCI(nSeq, oldWord)) {
+        replaceInListCI(nSeq, oldWord, newWord);
         nSeq.sort(Qt::CaseInsensitive);
         m_state->setNewSequence(nSeq);
     }
 
     QStringList rSeq = m_state->removedSequence();
-    if (rSeq.contains(oldWord)) {
-        rSeq.replace(rSeq.indexOf(oldWord), newWord);
+    if (listContainsCI(rSeq, oldWord)) {
+        replaceInListCI(rSeq, oldWord, newWord);
         m_state->setRemovedSequence(rSeq);
     }
 
@@ -465,20 +532,33 @@ void AppController::updateWordDetails(const QString &word, const QVariantList &d
 {
     if (word.isEmpty()) return;
     QString key = word.toLower();
-    
+
+    // Convert QVariantList (from JS) back to QList<WordDetail>
     QList<WordDetail> detailList;
-    for (const auto &v : details) {
-        // QML sends JS objects/maps
+    for (const QVariant &v : details) {
         QVariantMap map = v.toMap();
-        WordDetail d;
-        d.meaning = map["meaning"].toString();
-        d.examples = map["examples"].toStringList();
-        d.pos = map["pos"].toStringList();
-        detailList.append(d);
+        WordDetail wd;
+        wd.meaning = map.value("meaning").toString();
+        wd.examples = map.value("examples").toStringList();
+        
+        // Clean up empty examples
+        QStringList cleanEx;
+        for (const QString &ex : std::as_const(wd.examples)) {
+            if (!ex.trimmed().isEmpty()) cleanEx.append(ex);
+        }
+        wd.examples = cleanEx;
+
+        // pos is list of strings
+        QVariantList posList = map.value("pos").toList();
+        QStringList pList;
+        for (const QVariant &p : posList) pList.append(p.toString());
+        wd.pos = pList;
+
+        detailList.append(wd);
     }
     
+    // Update State
     m_state->wordDetails.insert(key, detailList);
-    
     if (!ipa.isEmpty()) {
         m_state->wordIpa.insert(key, ipa);
     } else {
@@ -493,6 +573,31 @@ void AppController::updateWordDetails(const QString &word, const QVariantList &d
     save();
 }
 
+QVariantList AppController::getWordDetails(const QString &word) const
+{
+    if (word.isEmpty()) return {};
+    QString key = word.toLower();
+    
+    if (!m_state->wordDetails.contains(key)) return {};
+
+    QList<WordDetail> list = m_state->wordDetails.value(key);
+    QVariantList res;
+    for (const WordDetail &wd : list) {
+        QVariantMap m;
+        m["meaning"] = wd.meaning;
+        m["examples"] = wd.examples;
+        m["pos"] = wd.pos;
+        res.append(m);
+    }
+    return res;
+}
+
+QString AppController::getWordIpa(const QString &word) const
+{
+    if (word.isEmpty()) return "";
+    return m_state->wordIpa.value(word.toLower());
+}
+
 void AppController::updateLearnWord()
 {
     QStringList newSeq = m_state->newSequence();
@@ -503,7 +608,14 @@ void AppController::updateLearnWord()
     
     QString order = m_state->learnOrderMode();
     if (order == "Random") {
-        m_state->setLearnCurrentWord(newSeq[QRandomGenerator::global()->bounded(newSeq.size())]);
+        int idx = QRandomGenerator::global()->bounded(newSeq.size());
+        QString candidate = newSeq[idx];
+        // If we picked same word and have alternatives, pick next one
+        if (newSeq.size() > 1 && candidate == m_state->learnCurrentWord()) {
+            idx = (idx + 1) % newSeq.size();
+            candidate = newSeq[idx];
+        }
+        m_state->setLearnCurrentWord(candidate);
     } else {
         if (m_learnIdx >= newSeq.size()) m_learnIdx = 0;
         if (m_learnIdx < 0) m_learnIdx = newSeq.size() - 1;
@@ -522,12 +634,12 @@ QStringList AppController::getNewWordsList() const
     return m_state->newSequence();
 }
 
-void AppController::nextLearnWord()
+QString AppController::nextLearnWord()
 {
     QStringList newSeq = m_state->newSequence();
     if (newSeq.isEmpty()) {
         m_state->setLearnCurrentWord("");
-        return;
+        return "";
     }
     
     QString order = m_state->learnOrderMode();
@@ -536,6 +648,7 @@ void AppController::nextLearnWord()
         if (m_learnIdx >= newSeq.size()) m_learnIdx = 0;
     }
     updateLearnWord();
+    return m_state->learnCurrentWord();
 }
 
 void AppController::markLearnWordKnown()
@@ -551,22 +664,36 @@ void AppController::removeLearnWord()
 {
     QString w = m_state->learnCurrentWord();
     if (w.isEmpty()) return;
-    
-    m_state->removedWords.insert(w.toLower());
-    m_state->newWords.remove(w);
-    
-    QStringList rSeq = m_state->removedSequence();
-    if (!rSeq.contains(w.toLower())) { // Wait, Python removed list is mixed casing, but usually word is kept. 
-        rSeq.append(w);
-        m_state->setRemovedSequence(rSeq);
-    }
-    
+
+    // Match Python _learn_remove_current:
+    // - add lowercase to removed_words
+    // - remove from known/new sets
+    // - remove from known/new sequences
+    // - remove from learnedSession (case-insensitive) and learnedLog
+    const QString lw = w.toLower();
+    m_state->removedWords.insert(lw);
+
+    removeLower(m_state->knownWords, w);
+    removeLower(m_state->newWords, w);
+
+    QStringList kSeq = m_state->knownSequence();
+    if (removeFromListCI(kSeq, w)) m_state->setKnownSequence(kSeq);
+
     QStringList nSeq = m_state->newSequence();
-    nSeq.removeAll(w);
-    m_state->setNewSequence(nSeq);
-    
+    if (removeFromListCI(nSeq, w)) m_state->setNewSequence(nSeq);
+
+    // Keep removedSequence as a MRU list with original casing (prepend like removeWord())
+    QStringList rSeq = m_state->removedSequence();
+    removeFromListCI(rSeq, w);
+    rSeq.prepend(w);
+    m_state->setRemovedSequence(rSeq);
+
+    // learnedSession stores casing; learnedLog uses lowercase key
+    removeFromListCI(m_state->learnedSession, w);
+    m_state->learnedLog.remove(lw);
+
     m_eligibleDirty = true;
-    save();
+    m_store->saveAsync();
     nextLearnWord();
 }
 

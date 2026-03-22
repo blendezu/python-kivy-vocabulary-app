@@ -136,6 +136,7 @@ Popup {
                 cursorShape: Qt.PointingHandCursor
                 onClicked: {
                     if (root.currentItem.word && root.editPopupRef) {
+                        root.editPopupRef.fromLearn = false
                         root.editPopupRef.wordToEdit = root.currentItem.word
                         root.editPopupRef.open()
                     }

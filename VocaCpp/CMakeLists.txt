@@ -51,3 +51,10 @@ qt_add_qml_module(VocaCpp
         src/ui/ExpressionsPopup.qml
         src/ui/LearnedWordsPopup.qml
 )
+
+# Embed static assets (vocabulary JSON) so it’s available at runtime
+qt_add_resources(VocaCpp "assets"
+    PREFIX "/"
+    FILES
+        b1_word_from_cambridge.json
+)

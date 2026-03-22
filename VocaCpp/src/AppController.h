@@ -37,7 +37,7 @@ public:
 
     // Learn
     Q_INVOKABLE QStringList getNewWordsList() const;
-    Q_INVOKABLE void nextLearnWord();
+    Q_INVOKABLE QString nextLearnWord();
     Q_INVOKABLE void markLearnWordKnown();
     Q_INVOKABLE void removeLearnWord();
 
@@ -55,6 +55,8 @@ public:
     
     // Editor
     Q_INVOKABLE void updateWordDetails(const QString &word, const QVariantList &details, const QString &ipa);
+    Q_INVOKABLE QVariantList getWordDetails(const QString &word) const;
+    Q_INVOKABLE QString getWordIpa(const QString &word) const;
 
     // Text Analysis & Adding Words
     Q_INVOKABLE int addNewWordsFromText(const QString &text);
