@@ -31,6 +31,30 @@ Popup {
     property var sessionHistory: []
     property int sessionIndex: -1
 
+    // Notification
+    Rectangle {
+        id: notification
+        width: 200; height: 40; radius: 6
+        color: "#40a661"
+        anchors.top: parent.top; anchors.topMargin: 20
+        anchors.horizontalCenter: parent.horizontalCenter
+        z: 100 // On top
+        visible: false
+        Text { anchors.centerIn: parent; text: "Saved!"; color: "white"; font.pixelSize: 16; font.bold: true }
+
+        Timer {
+            id: notifyTimer
+            interval: 1500
+            repeat: false
+            onTriggered: notification.visible = false
+        }
+    }
+
+    function showSavedNotification() {
+        notification.visible = true
+        notifyTimer.restart()
+    }
+
     // ── helpers ──────────────────────────────────────────────────────────────
     function addExampleToRow(rowObj, initialText) {
         var comp = Qt.createComponent("_ExampleRow.qml")
@@ -127,6 +151,8 @@ Popup {
         ipaField.text = ""
         var fetchedIpa = app.getWordIpa(newWord)
         if (fetchedIpa) ipaField.text = fetchedIpa
+
+        isTongueTwister = app.isTongueTwister(newWord)
         
         var d = app.getWordDetails(newWord)
         // Debug what we found
@@ -429,7 +455,8 @@ Popup {
                             if (lbl === "+ Meaning") {
                                 addMeaningRow("", [""], [])
                             } else if (lbl === "Save") {
-                                app.updateWordDetails(wordToEdit, collectData(), ipaField.text)
+                                app.updateWordDetails(wordToEdit, collectData(), ipaField.text, isTongueTwister)
+                                showSavedNotification()
 
                                 if (fromLearn) {
                                     app.markWordKnown(wordToEdit)
@@ -445,7 +472,12 @@ Popup {
                                     root.close()
                                 }
                             } else if (lbl === "Next") {
+                                // Save current changes before moving on
+                                app.updateWordDetails(wordToEdit, collectData(), ipaField.text, isTongueTwister)
+
                                 if (fromLearn) {
+                                    app.markWordKnown(wordToEdit) // Mark as known when moving to next
+
                                     if (sessionIndex < sessionHistory.length - 1) {
                                         // Go forward in history
                                         sessionIndex++

@@ -210,21 +210,14 @@ void AppController::requestNextWord()
             !m_state->removedWords.contains(lp)) {
             
             // Auto mark known
-            m_state->knownWords.insert(lp);
-            
-            // Add to sequence if not there
-            QStringList seq = m_state->knownSequence();
-            if (!listContainsCI(seq, prev)) {
-                seq.append(prev);
-                m_state->setKnownSequence(seq);
-            }
-            m_eligibleDirty = true;
+            markWordKnown(prev);
         }
     }
 
     QString next = getRandomWord();
     if (next.isEmpty()) {
         m_state->setCurrentWord(""); // Finished
+        m_store->saveAsync();
         return;
     }
     
@@ -680,7 +673,7 @@ QVariantMap AppController::getMonthlyStats(int year) const
     return result;
 }
 
-void AppController::updateWordDetails(const QString &word, const QVariantList &details, const QString &ipa)
+void AppController::updateWordDetails(const QString &word, const QVariantList &details, const QString &ipa, bool isTongueTwister)
 {
     if (word.isEmpty()) return;
     QString key = word.toLower();
@@ -710,11 +703,23 @@ void AppController::updateWordDetails(const QString &word, const QVariantList &d
     }
     
     // Update State
-    m_state->wordDetails.insert(key, detailList);
+    if (!detailList.isEmpty()) {
+        m_state->wordDetails.insert(key, detailList);
+    } else {
+        m_state->wordDetails.remove(key);
+    }
+
     if (!ipa.isEmpty()) {
         m_state->wordIpa.insert(key, ipa);
     } else {
         m_state->wordIpa.remove(key);
+    }
+
+    // Tongue Twister
+    if (isTongueTwister) {
+        insertLower(m_state->tongueTwisters, key);
+    } else {
+        removeLower(m_state->tongueTwisters, key);
     }
     
     // Trigger signal if it's the current word
@@ -748,6 +753,12 @@ QString AppController::getWordIpa(const QString &word) const
 {
     if (word.isEmpty()) return "";
     return m_state->wordIpa.value(word.toLower());
+}
+
+bool AppController::isTongueTwister(const QString &word) const
+{
+    if (word.isEmpty()) return false;
+    return m_state->tongueTwisters.contains(word.toLower());
 }
 
 void AppController::updateLearnWord()
@@ -1177,7 +1188,7 @@ void AppController::addExpression(const QString &phrase, const QVariantList &det
     }
     
     // Add to wordDetails
-    updateWordDetails(cleanPhrase, details, "");
+    updateWordDetails(cleanPhrase, details, "", false);
 }
 
 QVariantList AppController::getLearnedWordsAndExpressions(const QString &query, bool onlyTwister) const

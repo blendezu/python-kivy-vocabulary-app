@@ -10,6 +10,10 @@ Popup {
     focus: true
     anchors.centerIn: parent
 
+    property var learnedWordsPopup: null
+    property var reviewPopup: null
+    property var editPopup: null
+
     onOpened: {
         if (!app.state.learnCurrentWord) {
             app.nextLearnWord()
@@ -155,6 +159,13 @@ Popup {
             font.pixelSize: 24
             palette.buttonText: "#f2faff"
             palette.button: "#468c99" // teal
+            onClicked: {
+                if (learnedWordsPopup) {
+                    learnedWordsPopup.open()
+                } else {
+                    console.warn("learnedWordsPopup not set")
+                }
+            }
         }
 
         Button {

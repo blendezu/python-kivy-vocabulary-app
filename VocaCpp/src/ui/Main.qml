@@ -473,7 +473,12 @@ ApplicationWindow {
         id: dashboardPopup
     }
     
-    LearnPopup { id: learnPopup }
+    LearnPopup {
+        id: learnPopup
+        learnedWordsPopup: learnedWordsPopup
+        reviewPopup: reviewPopup
+        editPopup: editPopup
+    }
     ReviewPopup { id: reviewPopup }
     WordEditPopup { id: editPopup }
     CorrectWordPopup { id: correctWordPopup }

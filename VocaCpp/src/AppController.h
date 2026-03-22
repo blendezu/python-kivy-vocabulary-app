@@ -56,9 +56,10 @@ public:
     Q_INVOKABLE QVariantMap getMonthlyStats(int year) const;
 
     // Editor
-    Q_INVOKABLE void updateWordDetails(const QString &word, const QVariantList &details, const QString &ipa);
+    Q_INVOKABLE void updateWordDetails(const QString &word, const QVariantList &details, const QString &ipa, bool isTongueTwister);
     Q_INVOKABLE QVariantList getWordDetails(const QString &word) const;
     Q_INVOKABLE QString getWordIpa(const QString &word) const;
+    Q_INVOKABLE bool isTongueTwister(const QString &word) const;
 
     // Text Analysis & Adding Words
     Q_INVOKABLE int addNewWordsFromText(const QString &text);

@@ -77,7 +77,7 @@ Popup {
                         spacing: 8
                         
                         Button {
-                            text: "Hören"
+                            text: "Listen"
                             font.pixelSize: 18
                             background: Rectangle { color: "#408cff"; radius: 4 }
                             contentItem: Text { text: parent.text; color: "#f2faff"; font: parent.font; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
