@@ -27,6 +27,10 @@ Popup {
     // ── imperative data: each entry = { meaningInput, exInputs[], posButtons[], row }
     property var meaningRows: []
 
+    // History Managment
+    property var sessionHistory: []
+    property int sessionIndex: -1
+
     // ── helpers ──────────────────────────────────────────────────────────────
     function addExampleToRow(rowObj, initialText) {
         var comp = Qt.createComponent("_ExampleRow.qml")
@@ -175,6 +179,8 @@ Popup {
 
     onOpened: {
         advancedViaNext = false
+        sessionHistory = [wordToEdit]
+        sessionIndex = 0
         loadWord(wordToEdit)
     }
 
@@ -423,30 +429,34 @@ Popup {
 
                                 if (fromLearn) {
                                     app.markWordKnown(wordToEdit)
-                                    var nw = app.nextLearnWord()
-                                    advancedViaNext = true
-                                    
-                                    if (nw && nw !== "") {
-                                        loadTimer.nextWord = nw
-                                        loadTimer.start()
-                                    } else {
-                                        root.close()
-                                    }
-
+                                    // User wants to stay on the page and press Next manually
                                 } else {
                                     root.close()
                                 }
                             } else if (lbl === "Back") {
-                                root.close()
+                                if (fromLearn && sessionIndex > 0) {
+                                    sessionIndex--
+                                    loadWord(sessionHistory[sessionIndex])
+                                } else {
+                                    root.close()
+                                }
                             } else if (lbl === "Next") {
                                 if (fromLearn) {
-                                    var nw = app.nextLearnWord()
-                                    advancedViaNext = true
-                                    if (nw && nw !== "") {
-                                        loadTimer.nextWord = nw
-                                        loadTimer.start()
+                                    if (sessionIndex < sessionHistory.length - 1) {
+                                        // Go forward in history
+                                        sessionIndex++
+                                        loadWord(sessionHistory[sessionIndex])
                                     } else {
-                                        root.close()
+                                        // Load new word
+                                        var nw = app.nextLearnWord()
+                                        advancedViaNext = true
+                                        if (nw && nw !== "") {
+                                            sessionHistory.push(nw)
+                                            sessionIndex++
+                                            loadWord(nw)
+                                        } else {
+                                            root.close()
+                                        }
                                     }
                                 } else {
                                     root.close()
