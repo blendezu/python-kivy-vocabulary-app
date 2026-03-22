@@ -1,5 +1,0 @@
-Kivy==2.3.1
-openai_whisper==20250625
-silfont==1.8.0
-sounddevice==0.5.1
-coqui-tts

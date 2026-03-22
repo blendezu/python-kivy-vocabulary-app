@@ -1,151 +1,113 @@
-# VocaApp — Kivy Vocabulary Learning App
+# VocaCpp — High-Performance Vocabulary Learning App
 
-A cross‑platform vocabulary learning app built with Python and Kivy. Add new words and expressions, edit meanings and examples, practice with Learn and Review modes, get pronunciation via AI Text-to-Speech, practice pronunciation via AI Speech-to-Text, and track your progress with a dashboard.
+A cross‑platform vocabulary learning app built using **C++20 and Qt 6**.
+This application offers native performance, instant startup times, and efficient offline AI integration.
 
-## About me
-I developed this app as a beginner without formal software development experience. 
-My Python knowledge comes from a computer vision course at my university. 
-As a beginner, I welcome feedback and suggestions for improvement.
+## Unique Features
 
+**Build Your Personal Dictionary:**
+Unlike typical vocabulary apps with fixed lists, VocaCpp is designed to grow with you. You build your own dictionary over time, tracking exactly how many words you know in total. This gives you a tangible sense of your expanding vocabulary.
+
+**Initial Level Assessment:**
+On the first run, the app guides you through a curated list of B1 words from Cambridge. This helps you quickly assess your current English level and populates your initial tracked vocabulary.
+
+**Motivation through Data:**
+The built-in Dashboard visualizes your progress, tracking daily and monthly learning activity. Seeing your "known words" count go up provides the motivation to keep studying.
+
+**Active Recall:**
+Use the Flashcard mode to actively review and reinforce what you've learned, ensuring long-term retention.
 
 ## Features
 
-- Check your English level with B1 words from Cambridge
+- **Native Performance:** Built with C++ and Qt Quick (QML) for a fluid, responsive user experience.
+- **Offline AI Speech-to-Text:** Integrated [whisper.cpp](https://github.com/ggerganov/whisper.cpp) for real-time pronunciation practice without sending audio to the cloud.
+- **Text-to-Speech (TTS):** Uses native system voices via QtTextToSpeech for correct pronunciation examples.
+- **Vocabulary Management:** Add new words, edit meanings, and organize your personal dictionary.
+
+## Screenshots
 <p>
   <img src="images/start.png" alt="Start" width="360">
   <img src="images/mainscreen.png" alt="Main screen" width="360">
 </p>
-
-- Add and manage words  
-![Manage meaning](images/meaningEditor.png)
-
-- Review mode
-  - Text‑to‑speech (TTS) playback
-  - Speech‑to‑text (STT) to practice pronunciation
-  - Flashcard
 <p>
   <img src="images/reviewMode1.png" alt="Flashcard" width="360">
-  <img src="images/reviewMode2.png" alt="Main screen" width="360">
+  <img src="images/dashboard.png" alt="Dashboard" width="360">
 </p>
-
-- Dashboard
-  - Bar charts for “Last 10 Days” and “Months”
-  - Color‑coded bars (green = same/more than previous; red = less)
-  - Navigation arrows for days/months  
-![Dashboard](images/dashboard.png)
-
-- Works on macOS and Windows (Python)
 
 ## Requirements
 
-- Python 3.10 or newer
-- Python packages (see requirements.txt):
-  - kivy
-  - sounddevice
-  - TTS (Coqui TTS, requires torch)
-  - torch
-  - openai-whisper
-- System dependencies
-  - FFmpeg (required by Whisper)
-  - PortAudio (used by sounddevice)
-  - On Windows, Visual C++ Redistributable / Build Tools may be needed
+To build VocaCpp, you need a C++20 compliant compiler and the Qt 6 framework.
 
-## Installation
+- **CMake** 3.16 or higher
+- **Qt 6.4** or higher (Components: `QtQuick`, `QtMultimedia`, `QtTextToSpeech`, `QtConcurrent`)
+- **C++ Compiler** (Clang, GCC 10+, or MSVC 2019+)
 
-### 1) Clone the repository
+## Build Instructions
+
+### 1. Clone the repository
+Ensure you clone recursively to include submodules (like whisper.cpp).
 
 ```bash
-git clone https://github.com/adt97vn/python-kivy-vocabulary-app.git
-cd python-kivy-vocabulary-app
+git clone --recursive https://github.com/blendezu/vocabulary-app.git VocaCpp
+cd VocaCpp
 ```
 
-### 2) Create and activate a virtual environment
+### 2. Install Dependencies
 
-macOS/Linux:
+**macOS (Homebrew):**
+```bash
+brew install cmake qt@6
+# You might need to add qt@6 to your path or use CMAKE_PREFIX_PATH
+```
+
+**Linux (Ubuntu/Debian):**
+```bash
+sudo apt update
+sudo apt install build-essential cmake qt6-base-dev qt6-declarative-dev qt6-multimedia-dev qt6-speech-dev qml6-module-qtquick-controls qml6-module-qtquick-layouts
+```
+
+**Windows:**
+1. Install [Qt 6](https://www.qt.io/download) via the Online Installer.
+2. Install [CMake](https://cmake.org/download/).
+3. Install Visual Studio 2022 (with "Desktop development with C++").
+
+### 3. Build
+
+From the project root:
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install -U pip setuptools wheel
+# Create build directory
+mkdir build && cd build
+
+# Configure with CMake
+# macOS (using Homebrew Qt):
+cmake -DCMAKE_PREFIX_PATH=/opt/homebrew/opt/qt@6 ..
+
+# Linux / Windows:
+cmake ..
+
+# Build
+cmake --build . --parallel
 ```
 
-Windows (PowerShell):
+### 4. Run
 
-```powershell
-py -3.10 -m venv .venv
-.\.venv\Scripts\activate
-python -m pip install -U pip setuptools wheel
-```
-
-### 3) Install system dependencies
-
-macOS (Homebrew):
-
+**macOS:**
 ```bash
-brew install ffmpeg portaudio
+open VocaCpp.app
 ```
 
-Windows (Open PowerShell as Administrator for this step):
+**Linux/Windows:**
+Run the generated executable from the build directory.
 
-```PowerShell as Administrator
-# choco
-Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
-# FFmpeg
-choco install ffmpeg
-```
+## Architecture
 
-If sounddevice complains about PortAudio or build tools, install:
-```powershell
-winget install Microsoft.VisualStudio.2022.BuildTools
-```
+- **Core Logic:** C++ (Model-View-ViewModel architecture adapted for Qt).
+- **UI:** Qt Quick (QML) for modern, hardware-accelerated graphics.
+- **Persistence:** JSON-based local storage (for portability and simplicity).
+- **AI:** `whisper.cpp` linked directly into the application for zero-latency inference.
 
-### 4) Install Python dependencies
-
-(Windows: go back to normal cmd)
-
-This might take a while because of the AI Models for Text-to-Speech and Speech-to-Text
-From the repository root (where requirements.txt lives):
-
-```bash
-python -m pip install -r requirements.txt
-```
-
-GPU optional (Windows/NVIDIA): install a CUDA build of PyTorch instead of CPU wheels. Example:
-```powershell
-# Remove/skip torch from requirements first, then:
-python -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
-```
-
-## Running the app
-
-Option A — run the module:
-```bash
-python app.py
-```
-
-Option B — run the script app.py in python-kivy-vocabulary-app:
-```bash
-app.py
-```
-
-Notes:
-- On first run, models for TTS (Coqui) and STT (Whisper) may download automatically.
-- Grant microphone permissions to the terminal/IDE for STT on macOS and Windows.
-
-## Troubleshooting
-
-- “ffmpeg not found”
-  - Ensure FFmpeg is installed and in PATH (see installation above).
-- “No default output/input device” or sounddevice errors
-  - Check audio devices and permissions. On macOS, grant microphone access in System Settings.
-- PyTorch installation issues
-  - Upgrade pip/setuptools/wheel, then reinstall. For GPU, install the matching CUDA wheel for your system.
-
-
-## Contributing
-
-Issues and pull requests are welcome. Please open an issue for bugs or feature requests.
 
 ## License
 
-Choose an open‑source license (e.g., MIT) and add a LICENSE file to the repository.
+MIT
