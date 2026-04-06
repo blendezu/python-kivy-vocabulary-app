@@ -10,19 +10,19 @@ ApplicationWindow {
     height: 900
     visible: true
     title: qsTr("VocaApp C++")
-    color: "#14111f"
+    color: "#121419"
 
     // Shared theme colors (purple accent)
-    property color accentColor: "#9b6dff"
-    property color accentStrong: "#7f56d9"
-    property color accentSoft: "#b9a0ff"
-    property color surfaceColor: "#1f1a2b"
-    property color surfaceAltColor: "#2a2338"
-    property color borderColor: "#44375e"
-    property color textPrimary: "#f5f3ff"
-    property color textSecondary: "#cfc5e6"
-    property color textMuted: "#9f93bf"
-    property color dangerColor: "#b85d7a"
+    property color accentColor: '#6f5da5'
+    property color accentStrong: "#6f5da5"
+    property color accentSoft: "#6f5da5"
+    property color surfaceColor: "#1d1f26"
+    property color surfaceAltColor: "#2a2d36"
+    property color borderColor: "#6f5da5"
+    property color textPrimary: "#edf0f7"
+    property color textSecondary: "#c7ccda"
+    property color textMuted: "#6f5da5"
+    property color dangerColor: '#c87286'
 
     property var appState: app.state
     
@@ -99,7 +99,7 @@ ApplicationWindow {
                 Layout.preferredWidth: 1
                 Layout.fillHeight: true
                 font.pixelSize: 18
-                bgColor: "#765fd1"
+                bgColor: window.accentStrong
                 onClicked: learnPopup.open()
             }
             ColorButton {
@@ -108,7 +108,7 @@ ApplicationWindow {
                 Layout.preferredWidth: 1
                 Layout.fillHeight: true
                 font.pixelSize: 18
-                bgColor: "#6755b3"
+                bgColor: window.accentStrong
                 onClicked: learnedWordsPopup.open()
             }
             ColorButton {
@@ -126,7 +126,7 @@ ApplicationWindow {
                 Layout.preferredWidth: 1
                 Layout.fillHeight: true
                 font.pixelSize: 18
-                bgColor: "#5f4f9b"
+                bgColor: window.surfaceAltColor
                 onClicked: dashboardPopup.open()
             }
         }
@@ -218,7 +218,7 @@ ApplicationWindow {
                 Layout.preferredWidth: 1
                 Layout.fillHeight: true
                 font.pixelSize: 24
-                bgColor: "#735fc7"
+                bgColor: window.accentStrong
                 onClicked: app.requestNextWord()
             }
             ColorButton {
@@ -240,7 +240,7 @@ ApplicationWindow {
                 Layout.preferredWidth: 1
                 Layout.fillHeight: true
                 font.pixelSize: 24
-                bgColor: "#8c72e0"
+                bgColor: window.accentColor
                 onClicked: {
                     if (appState.currentWord !== "") app.markWordNew(appState.currentWord)
                 }
@@ -262,7 +262,7 @@ ApplicationWindow {
                 Rectangle {
                     Layout.fillWidth: true
                     height: 35
-                    color: "#5f4f9b"
+                    color: window.accentStrong
                     radius: 4
                     Text {
                         anchors.fill: parent
@@ -292,7 +292,7 @@ ApplicationWindow {
                             width: ListView.view.width
                             height: 35
                             property bool isSelected: window.selectedWord === modelData && window.selectedOrigin === "known"
-                            color: isSelected ? window.accentStrong : (index % 2 === 0 ? "#1e1a2a" : "#252036")
+                            color: isSelected ? window.accentStrong : (index % 2 === 0 ? window.surfaceColor : window.surfaceAltColor)
                             Text {
                                 anchors.centerIn: parent
                                 text: modelData
@@ -346,7 +346,7 @@ ApplicationWindow {
                     text: "X"
                     Layout.fillWidth: true
                     Layout.preferredHeight: 35
-                    bgColor: window.selectedWord !== "" && (window.selectedOrigin === "known" || window.selectedOrigin === "new") ? window.dangerColor : "#4f2b3a"
+                    bgColor: window.selectedWord !== "" && (window.selectedOrigin === "known" || window.selectedOrigin === "new") ? window.dangerColor : "#3e3035"
                     enabled: window.selectedWord !== "" && (window.selectedOrigin === "known" || window.selectedOrigin === "new")
                     onClicked: {
                         app.removeWord(window.selectedWord);
@@ -366,7 +366,7 @@ ApplicationWindow {
                 Rectangle {
                     Layout.fillWidth: true
                     height: 35
-                    color: window.accentStrong
+                    color: window.accentColor
                     radius: 4
                     Text {
                         anchors.fill: parent
@@ -396,7 +396,7 @@ ApplicationWindow {
                             width: ListView.view.width
                             height: 35
                             property bool isSelected: window.selectedWord === modelData && window.selectedOrigin === "new"
-                            color: isSelected ? window.accentStrong : (index % 2 === 0 ? "#221c31" : "#2a2340")
+                            color: isSelected ? window.accentStrong : (index % 2 === 0 ? window.surfaceColor : window.surfaceAltColor)
                             Text {
                                 anchors.centerIn: parent
                                 text: modelData
@@ -424,7 +424,7 @@ ApplicationWindow {
                 Rectangle {
                     Layout.fillWidth: true
                     height: 35
-                    color: "#7a4667"
+                    color: window.dangerColor
                     radius: 4
                     Text {
                         anchors.fill: parent
@@ -454,7 +454,7 @@ ApplicationWindow {
                             width: ListView.view.width
                             height: 35
                             property bool isSelected: window.selectedWord === modelData && window.selectedOrigin === "removed"
-                            color: isSelected ? window.accentStrong : (index % 2 === 0 ? "#241b2a" : "#2d2235")
+                            color: isSelected ? window.accentStrong : (index % 2 === 0 ? window.surfaceColor : window.surfaceAltColor)
                             Text {
                                 anchors.centerIn: parent
                                 text: modelData

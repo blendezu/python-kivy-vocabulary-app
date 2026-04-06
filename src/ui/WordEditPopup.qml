@@ -439,8 +439,8 @@ Popup {
                 model: [
                     {label: "+ Meaning", color: window.accentColor},
                     {label: "Save",      color: window.accentStrong},
-                    {label: "Back",      color: "#6b5aa8"},
-                    {label: "Next",      color: "#7a68c5"},
+                    {label: "Back",      color: window.surfaceAltColor},
+                    {label: "Next",      color: window.accentColor},
                     {label: "Close",     color: window.surfaceAltColor}
                 ]
                 Rectangle {

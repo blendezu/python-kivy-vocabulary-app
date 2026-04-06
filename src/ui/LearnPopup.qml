@@ -123,7 +123,7 @@ Popup {
                 Layout.fillHeight: true
                 font.pixelSize: 24
                 palette.buttonText: window.textPrimary
-                palette.button: "#735fc7"
+                palette.button: window.accentStrong
                 onClicked: app.nextLearnWord()
                 enabled: app.state.learnCurrentWord !== ""
             }
@@ -158,7 +158,7 @@ Popup {
             Layout.preferredHeight: 60
             font.pixelSize: 24
             palette.buttonText: window.textPrimary
-            palette.button: "#5f4f9b"
+            palette.button: window.surfaceAltColor
             onClicked: {
                 if (learnedWordsPopup) {
                     learnedWordsPopup.open()
