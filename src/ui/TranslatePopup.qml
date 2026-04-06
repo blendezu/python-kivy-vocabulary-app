@@ -134,46 +134,88 @@ Popup {
             Layout.fillHeight: true
             spacing: 12
 
-            ColumnLayout {
+            Rectangle {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                spacing: 8
+                Layout.preferredWidth: 1
+                Layout.minimumWidth: 320
+                radius: 12
+                color: "#15233b"
+                border.color: "#27436b"
+                border.width: 1
 
-                Text {
-                    text: "Source"
-                    color: window.textSecondary
-                    font.pixelSize: 14
-                }
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.margins: 10
+                    spacing: 8
 
-                TextArea {
-                    id: sourceInput
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    placeholderText: "Type text to translate..."
-                    wrapMode: TextArea.Wrap
-                    font.pixelSize: 16
+                    Text {
+                        text: "Source"
+                        color: window.textSecondary
+                        font.pixelSize: 14
+                    }
+
+                    TextArea {
+                        id: sourceInput
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        placeholderText: "Type text to translate..."
+                        wrapMode: TextEdit.WrapAnywhere
+                        color: window.textPrimary
+                        selectionColor: window.accentColor
+                        selectedTextColor: "#ffffff"
+                        font.pixelSize: 16
+                        clip: true
+                        background: Rectangle {
+                            radius: 10
+                            color: "#0f1d34"
+                            border.color: "#213a5d"
+                            border.width: 1
+                        }
+                    }
                 }
             }
 
-            ColumnLayout {
+            Rectangle {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                spacing: 8
+                Layout.preferredWidth: 1
+                Layout.minimumWidth: 320
+                radius: 12
+                color: "#15233b"
+                border.color: "#27436b"
+                border.width: 1
 
-                Text {
-                    text: "Translation"
-                    color: window.textSecondary
-                    font.pixelSize: 14
-                }
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.margins: 10
+                    spacing: 8
 
-                TextArea {
-                    id: translatedOutput
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    readOnly: true
-                    wrapMode: TextArea.Wrap
-                    font.pixelSize: 16
-                    placeholderText: "Translated text appears here..."
+                    Text {
+                        text: "Translation"
+                        color: window.textSecondary
+                        font.pixelSize: 14
+                    }
+
+                    TextArea {
+                        id: translatedOutput
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        readOnly: true
+                        wrapMode: TextEdit.WrapAnywhere
+                        color: window.textPrimary
+                        selectionColor: window.accentColor
+                        selectedTextColor: "#ffffff"
+                        font.pixelSize: 16
+                        placeholderText: "Translated text appears here..."
+                        clip: true
+                        background: Rectangle {
+                            radius: 10
+                            color: "#0f1d34"
+                            border.color: "#213a5d"
+                            border.width: 1
+                        }
+                    }
                 }
             }
         }

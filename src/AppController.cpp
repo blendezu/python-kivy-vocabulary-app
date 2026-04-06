@@ -13,6 +13,7 @@
 #include <QProcessEnvironment>
 #include <QCoreApplication>
 #include <QStringConverter>
+#include <QElapsedTimer>
 #include <algorithm>
 #include <iostream>
 
@@ -1297,7 +1298,129 @@ QString AppController::resolveNllbScriptPath() const
     return QString();
 }
 
-QVariantMap AppController::translateText(const QString &text, const QString &sourceLangCode, const QString &targetLangCode) const
+bool AppController::readWorkerJsonLine(QJsonObject &obj, QString &errorMessage, int timeoutMs)
+{
+    if (!m_translateWorker) {
+        errorMessage = "Translator worker is not available.";
+        return false;
+    }
+
+    QElapsedTimer timer;
+    timer.start();
+
+    while (true) {
+        const int lineEnd = m_translateStdoutBuffer.indexOf('\n');
+        if (lineEnd >= 0) {
+            QByteArray line = m_translateStdoutBuffer.left(lineEnd).trimmed();
+            m_translateStdoutBuffer.remove(0, lineEnd + 1);
+
+            if (line.isEmpty()) {
+                continue;
+            }
+
+            QJsonParseError parseError;
+            const QJsonDocument doc = QJsonDocument::fromJson(line, &parseError);
+            if (parseError.error != QJsonParseError::NoError || !doc.isObject()) {
+                errorMessage = "Translator returned invalid JSON line.";
+                return false;
+            }
+
+            obj = doc.object();
+            return true;
+        }
+
+        const int remaining = timeoutMs - static_cast<int>(timer.elapsed());
+        if (remaining <= 0) {
+            errorMessage = "Timed out waiting for translator response.";
+            return false;
+        }
+
+        if (!m_translateWorker->waitForReadyRead(remaining)) {
+            // try to consume any remaining output once
+            m_translateStdoutBuffer += m_translateWorker->readAllStandardOutput();
+            if (m_translateStdoutBuffer.indexOf('\n') >= 0) {
+                continue;
+            }
+
+            if (m_translateWorker->state() != QProcess::Running) {
+                const QString errText = QString::fromUtf8(m_translateWorker->readAllStandardError()).trimmed();
+                if (!errText.isEmpty()) {
+                    errorMessage = "Translator worker exited early: " + errText;
+                } else {
+                    errorMessage = "Translator worker exited before returning a response.";
+                }
+                return false;
+            }
+
+            errorMessage = "Translator process did not return output in time.";
+            return false;
+        }
+
+        m_translateStdoutBuffer += m_translateWorker->readAllStandardOutput();
+    }
+}
+
+bool AppController::ensureTranslateWorker(QString &errorMessage)
+{
+    if (m_translateWorker && m_translateWorker->state() == QProcess::Running) {
+        return true;
+    }
+
+    if (m_translateWorker) {
+        m_translateWorker->deleteLater();
+        m_translateWorker = nullptr;
+    }
+    m_translateStdoutBuffer.clear();
+
+    const QString scriptPath = resolveNllbScriptPath();
+    if (scriptPath.isEmpty()) {
+        errorMessage = "Translation script not found (scripts/nllb_translate.py).";
+        return false;
+    }
+
+    QString pythonExe = QString::fromLocal8Bit(qgetenv("VOCA_TRANSLATE_PYTHON")).trimmed();
+    if (pythonExe.isEmpty()) {
+        pythonExe = "python3";
+    }
+
+    m_translateWorker = new QProcess(this);
+    m_translateWorker->setProgram(pythonExe);
+    m_translateWorker->setArguments({scriptPath, "--server"});
+
+    m_translateWorker->start();
+    if (!m_translateWorker->waitForStarted(5000)) {
+        errorMessage = "Could not start persistent translation worker.";
+        m_translateWorker->deleteLater();
+        m_translateWorker = nullptr;
+        return false;
+    }
+
+    bool timeoutOk = false;
+    int startupTimeoutMs = QString::fromLocal8Bit(qgetenv("VOCA_TRANSLATE_STARTUP_TIMEOUT_MS")).toInt(&timeoutOk);
+    if (!timeoutOk || startupTimeoutMs < 10000) {
+        startupTimeoutMs = 900000; // first model load can be very slow
+    }
+
+    QJsonObject readyObj;
+    if (!readWorkerJsonLine(readyObj, errorMessage, startupTimeoutMs)) {
+        m_translateWorker->kill();
+        m_translateWorker->deleteLater();
+        m_translateWorker = nullptr;
+        return false;
+    }
+
+    if (!readyObj.value("ok").toBool(false)) {
+        errorMessage = readyObj.value("error").toString("Translator worker failed to initialize.");
+        m_translateWorker->kill();
+        m_translateWorker->deleteLater();
+        m_translateWorker = nullptr;
+        return false;
+    }
+
+    return true;
+}
+
+QVariantMap AppController::translateTextOneShot(const QString &text, const QString &sourceLangCode, const QString &targetLangCode) const
 {
     QVariantMap out;
 
@@ -1393,6 +1516,89 @@ QVariantMap AppController::translateText(const QString &text, const QString &sou
     out["device"] = obj.value("device").toString();
     out["model"] = obj.value("model").toString();
     out["warning"] = obj.value("warning").toString();
+    return out;
+}
+
+QVariantMap AppController::translateText(const QString &text, const QString &sourceLangCode, const QString &targetLangCode)
+{
+    QVariantMap out;
+
+    const QString cleanText = text.trimmed();
+    if (cleanText.isEmpty()) {
+        out["ok"] = false;
+        out["error"] = "Input text is empty.";
+        return out;
+    }
+
+    if (sourceLangCode.trimmed().isEmpty() || targetLangCode.trimmed().isEmpty()) {
+        out["ok"] = false;
+        out["error"] = "Source and target language are required.";
+        return out;
+    }
+
+    if (sourceLangCode == targetLangCode) {
+        out["ok"] = true;
+        out["translated"] = cleanText;
+        out["warning"] = "Source and target language are identical.";
+        return out;
+    }
+
+    QString workerError;
+    if (!ensureTranslateWorker(workerError)) {
+        // Fallback path keeps functionality even if persistent mode fails.
+        QVariantMap fallback = translateTextOneShot(cleanText, sourceLangCode, targetLangCode);
+        if (!workerError.isEmpty()) {
+            const QString existingWarning = fallback.value("warning").toString();
+            fallback["warning"] = existingWarning.isEmpty()
+                ? ("Persistent worker unavailable: " + workerError + " (used one-shot mode)")
+                : (existingWarning + " | Persistent worker unavailable: " + workerError + " (used one-shot mode)");
+        }
+        return fallback;
+    }
+
+    QJsonObject req;
+    req.insert("src", sourceLangCode);
+    req.insert("tgt", targetLangCode);
+    req.insert("text", cleanText);
+
+    QByteArray payload = QJsonDocument(req).toJson(QJsonDocument::Compact);
+    payload.append('\n');
+
+    if (m_translateWorker->write(payload) == -1 || !m_translateWorker->waitForBytesWritten(3000)) {
+        QVariantMap fallback = translateTextOneShot(cleanText, sourceLangCode, targetLangCode);
+        const QString existingWarning = fallback.value("warning").toString();
+        fallback["warning"] = existingWarning.isEmpty()
+            ? "Persistent worker write failed (used one-shot mode)."
+            : existingWarning + " | Persistent worker write failed (used one-shot mode).";
+        return fallback;
+    }
+
+    bool timeoutOk = false;
+    int timeoutMs = QString::fromLocal8Bit(qgetenv("VOCA_TRANSLATE_TIMEOUT_MS")).toInt(&timeoutOk);
+    if (!timeoutOk || timeoutMs < 3000) {
+        timeoutMs = 120000;
+    }
+
+    QJsonObject resp;
+    QString readError;
+    if (!readWorkerJsonLine(resp, readError, timeoutMs)) {
+        QVariantMap fallback = translateTextOneShot(cleanText, sourceLangCode, targetLangCode);
+        const QString existingWarning = fallback.value("warning").toString();
+        fallback["warning"] = existingWarning.isEmpty()
+            ? ("Persistent worker read failed: " + readError + " (used one-shot mode)")
+            : (existingWarning + " | Persistent worker read failed: " + readError + " (used one-shot mode)");
+        return fallback;
+    }
+
+    out["ok"] = resp.value("ok").toBool(false);
+    out["translated"] = resp.value("translated").toString();
+    out["device"] = resp.value("device").toString();
+    out["model"] = resp.value("model").toString();
+    out["warning"] = resp.value("warning").toString();
+    if (!out["ok"].toBool()) {
+        out["error"] = resp.value("error").toString("Translation failed.");
+    }
+
     return out;
 }
 

@@ -3,10 +3,14 @@
 
 #include <QObject>
 #include <QRandomGenerator>
+#include <QByteArray>
+#include <QJsonObject>
 #include "models/AppState.h"
 #include "persistence/ProgressStore.h"
 #include "services/TTSService.h"
 #include "services/STTService.h"
+
+class QProcess;
 
 class AppController : public QObject
 {
@@ -73,12 +77,15 @@ public:
     Q_INVOKABLE QVariantList getExpressionsWithDetails(const QString &query) const;
     Q_INVOKABLE void addExpression(const QString &phrase, const QVariantList &details);
     Q_INVOKABLE int addWords(const QStringList &words);
-    Q_INVOKABLE QVariantMap translateText(const QString &text, const QString &sourceLangCode, const QString &targetLangCode) const;
+    Q_INVOKABLE QVariantMap translateText(const QString &text, const QString &sourceLangCode, const QString &targetLangCode);
 
 private:
     void rebuildEligiblePool();
     QString getRandomWord();
     QString resolveNllbScriptPath() const;
+    bool ensureTranslateWorker(QString &errorMessage);
+    QVariantMap translateTextOneShot(const QString &text, const QString &sourceLangCode, const QString &targetLangCode) const;
+    bool readWorkerJsonLine(QJsonObject &obj, QString &errorMessage, int timeoutMs);
 
     AppState *m_state;
     ProgressStore *m_store;
@@ -93,6 +100,9 @@ private:
 
     QStringList m_reviewPool;
     int m_reviewIdx = 0;
+
+    QProcess *m_translateWorker = nullptr;
+    QByteArray m_translateStdoutBuffer;
 };
 
 
