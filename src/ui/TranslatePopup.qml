@@ -5,6 +5,7 @@ import QtQuick.Layouts
 Popup {
     id: root
     property bool embeddedMode: false
+    property bool secondTargetEnabled: false
 
     width: window.width * 0.95
     height: window.height * 0.95
@@ -58,22 +59,52 @@ Popup {
             selectedLangCode(targetCombo)
         )
 
-        if (res.ok) {
-            translatedOutput.text = res.translated
-            let details = "Done"
-            if (res.device) {
-                details += " • device: " + res.device
-            }
-            if (res.warning) {
-                details += " • " + res.warning
-            }
-            statusText.text = details
-            statusText.color = "#93c5fd"
-        } else {
+        if (!res.ok) {
             translatedOutput.text = ""
+            translatedOutput2.text = ""
             statusText.text = res.error || "Translation failed"
             statusText.color = "#fca5a5"
+            return
         }
+
+        translatedOutput.text = res.translated
+
+        let warningText = res.warning ? String(res.warning) : ""
+        let details = "Done"
+        if (res.device) {
+            details += " • device: " + res.device
+        }
+
+        if (secondTargetEnabled) {
+            const res2 = app.translateText(
+                sourceInput.text,
+                selectedLangCode(sourceCombo),
+                selectedLangCode(targetCombo2)
+            )
+
+            if (res2.ok) {
+                translatedOutput2.text = res2.translated
+                if (res2.warning) {
+                    warningText = warningText
+                        ? (warningText + " | " + res2.warning)
+                        : String(res2.warning)
+                }
+            } else {
+                translatedOutput2.text = ""
+                details += " • 2nd language failed"
+                warningText = warningText
+                    ? (warningText + " | " + (res2.error || "Second translation failed"))
+                    : (res2.error || "Second translation failed")
+            }
+        } else {
+            translatedOutput2.text = ""
+        }
+
+        if (warningText) {
+            details += " • " + warningText
+        }
+        statusText.text = details
+        statusText.color = "#93c5fd"
     }
 
     ColumnLayout {
@@ -96,17 +127,108 @@ Popup {
             Layout.fillWidth: true
         }
 
+        GridLayout {
+            Layout.fillWidth: true
+            columns: 3
+            columnSpacing: 12
+            rowSpacing: 12
+
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 84
+                Layout.minimumWidth: 240
+                radius: 10
+                color: "#15233b"
+                border.color: "#27436b"
+                border.width: 1
+
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.margins: 8
+                    spacing: 6
+
+                    Text {
+                        text: "Source"
+                        color: window.textMuted
+                        font.pixelSize: 13
+                    }
+
+                    ComboBox {
+                        id: sourceCombo
+                        Layout.fillWidth: true
+                        model: langModel
+                        textRole: "label"
+                        currentIndex: 0
+                    }
+                }
+            }
+
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 84
+                Layout.minimumWidth: 240
+                radius: 10
+                color: "#15233b"
+                border.color: "#27436b"
+                border.width: 1
+
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.margins: 8
+                    spacing: 6
+
+                    Text {
+                        text: "Target 1"
+                        color: window.textMuted
+                        font.pixelSize: 13
+                    }
+
+                    ComboBox {
+                        id: targetCombo
+                        Layout.fillWidth: true
+                        model: langModel
+                        textRole: "label"
+                        currentIndex: 1
+                    }
+                }
+            }
+
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 84
+                Layout.minimumWidth: 240
+                radius: 10
+                color: "#15233b"
+                border.color: "#27436b"
+                border.width: 1
+                opacity: root.secondTargetEnabled ? 1.0 : 0.7
+
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.margins: 8
+                    spacing: 6
+
+                    Text {
+                        text: "Target 2"
+                        color: window.textMuted
+                        font.pixelSize: 13
+                    }
+
+                    ComboBox {
+                        id: targetCombo2
+                        Layout.fillWidth: true
+                        model: langModel
+                        textRole: "label"
+                        currentIndex: 2
+                        enabled: root.secondTargetEnabled
+                    }
+                }
+            }
+        }
+
         RowLayout {
             Layout.fillWidth: true
             spacing: 10
-
-            ComboBox {
-                id: sourceCombo
-                Layout.fillWidth: true
-                model: langModel
-                textRole: "label"
-                currentIndex: 0
-            }
 
             Button {
                 text: "⇄"
@@ -114,12 +236,20 @@ Popup {
                 onClicked: swapLanguages()
             }
 
-            ComboBox {
-                id: targetCombo
+            Item {
                 Layout.fillWidth: true
-                model: langModel
-                textRole: "label"
-                currentIndex: 1
+            }
+
+            Button {
+                id: toggleSecondLanguageButton
+                text: root.secondTargetEnabled ? "− Sprache" : "+ Sprache"
+                Layout.preferredWidth: 110
+                onClicked: {
+                    root.secondTargetEnabled = !root.secondTargetEnabled
+                    if (!root.secondTargetEnabled) {
+                        translatedOutput2.text = ""
+                    }
+                }
             }
         }
 
@@ -138,7 +268,7 @@ Popup {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 Layout.preferredWidth: 1
-                Layout.minimumWidth: 320
+                Layout.minimumWidth: 240
                 radius: 12
                 color: "#15233b"
                 border.color: "#27436b"
@@ -177,10 +307,11 @@ Popup {
             }
 
             Rectangle {
+                visible: root.secondTargetEnabled
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 Layout.preferredWidth: 1
-                Layout.minimumWidth: 320
+                Layout.minimumWidth: 240
                 radius: 12
                 color: "#15233b"
                 border.color: "#27436b"
@@ -192,7 +323,7 @@ Popup {
                     spacing: 8
 
                     Text {
-                        text: "Translation"
+                        text: "Translation 1"
                         color: window.textSecondary
                         font.pixelSize: 14
                     }
@@ -212,6 +343,52 @@ Popup {
                         background: Rectangle {
                             radius: 10
                             color: "#0f1d34"
+                            border.color: "#213a5d"
+                            border.width: 1
+                        }
+                    }
+                }
+            }
+
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                Layout.preferredWidth: 1
+                Layout.minimumWidth: 240
+                radius: 12
+                color: "#15233b"
+                border.color: "#27436b"
+                border.width: 1
+
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.margins: 10
+                    spacing: 8
+
+                    Text {
+                        text: "Translation 2"
+                        color: window.textSecondary
+                        font.pixelSize: 14
+                    }
+
+                    TextArea {
+                        id: translatedOutput2
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        readOnly: true
+                        enabled: root.secondTargetEnabled
+                        wrapMode: TextEdit.WrapAnywhere
+                        color: root.secondTargetEnabled ? window.textPrimary : window.textMuted
+                        selectionColor: window.accentColor
+                        selectedTextColor: "#ffffff"
+                        font.pixelSize: 16
+                        placeholderText: root.secondTargetEnabled
+                            ? "Second translation appears here..."
+                            : "Enable '+ Sprache' to add a second target language"
+                        clip: true
+                        background: Rectangle {
+                            radius: 10
+                            color: root.secondTargetEnabled ? "#0f1d34" : "#12233f"
                             border.color: "#213a5d"
                             border.width: 1
                         }
@@ -245,6 +422,7 @@ Popup {
                 onClicked: {
                     sourceInput.text = ""
                     translatedOutput.text = ""
+                    translatedOutput2.text = ""
                     statusText.text = ""
                 }
             }
