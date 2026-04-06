@@ -23,6 +23,56 @@ ApplicationWindow {
     property color textSecondary: "#c7ccda"
     property color textMuted: "#6f5da5"
     property color dangerColor: '#c87286'
+    property string themeMode: "lila"
+
+    function applyTheme(mode) {
+        themeMode = mode
+        if (mode === "turquesa") {
+            accentColor = "#2f8f9d"
+            accentStrong = "#2b7f8b"
+            accentSoft = "#78aeb6"
+            surfaceColor = "#1b2124"
+            surfaceAltColor = "#263237"
+            borderColor = "#2f8f9d"
+            textPrimary = "#eaf2f3"
+            textSecondary = "#c3d5d8"
+            textMuted = "#7da1a6"
+            dangerColor = "#b16c77"
+        } else {
+            accentColor = "#6f5da5"
+            accentStrong = "#6f5da5"
+            accentSoft = "#6f5da5"
+            surfaceColor = "#1d1f26"
+            surfaceAltColor = "#2a2d36"
+            borderColor = "#6f5da5"
+            textPrimary = "#edf0f7"
+            textSecondary = "#c7ccda"
+            textMuted = "#6f5da5"
+            dangerColor = "#c87286"
+        }
+    }
+
+    Component.onCompleted: applyTheme(themeMode)
+
+    menuBar: MenuBar {
+        Menu {
+            title: "Theme"
+
+            MenuItem {
+                text: "Lila"
+                checkable: true
+                checked: window.themeMode === "lila"
+                onTriggered: window.applyTheme("lila")
+            }
+
+            MenuItem {
+                text: "Turquesa"
+                checkable: true
+                checked: window.themeMode === "turquesa"
+                onTriggered: window.applyTheme("turquesa")
+            }
+        }
+    }
 
     property var appState: app.state
     
