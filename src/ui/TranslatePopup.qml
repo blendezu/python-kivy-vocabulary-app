@@ -345,10 +345,13 @@ Popup {
             color: window.borderColor
         }
 
-        RowLayout {
+        Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            spacing: 12
+
+            RowLayout {
+                anchors.fill: parent
+                spacing: 12
 
             Rectangle {
                 Layout.fillWidth: true
@@ -436,16 +439,16 @@ Popup {
                 }
             }
 
-            Rectangle {
-                visible: root.secondTargetEnabled
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                Layout.preferredWidth: 1
-                Layout.minimumWidth: 240
-                radius: 12
-                color: "#15233b"
-                border.color: "#27436b"
-                border.width: 1
+                Rectangle {
+                    visible: root.secondTargetEnabled
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    Layout.preferredWidth: 1
+                    Layout.minimumWidth: 240
+                    radius: 12
+                    color: "#15233b"
+                    border.color: "#27436b"
+                    border.width: 1
 
                 ColumnLayout {
                     anchors.fill: parent
@@ -476,6 +479,48 @@ Popup {
                             border.color: "#213a5d"
                             border.width: 1
                         }
+                    }
+                }
+                }
+            }
+
+            Rectangle {
+                anchors.fill: parent
+                visible: root.isWarmingUp
+                z: 20
+                radius: 14
+                color: Qt.rgba(11 / 255, 18 / 255, 32 / 255, 0.64)
+                border.color: Qt.rgba(96 / 255, 165 / 255, 250 / 255, 0.32)
+                border.width: 1
+
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: {}
+                }
+
+                Column {
+                    anchors.centerIn: parent
+                    spacing: 10
+
+                    BusyIndicator {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        running: root.isWarmingUp
+                        width: 34
+                        height: 34
+                    }
+
+                    Text {
+                        text: "Loading model..."
+                        color: window.textPrimary
+                        font.pixelSize: 16
+                        font.bold: true
+                    }
+
+                    Text {
+                        text: "Please wait"
+                        color: window.textSecondary
+                        font.pixelSize: 13
+                        anchors.horizontalCenter: parent.horizontalCenter
                     }
                 }
             }
