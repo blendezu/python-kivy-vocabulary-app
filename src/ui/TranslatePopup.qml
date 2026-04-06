@@ -7,6 +7,8 @@ Popup {
     property bool embeddedMode: false
     readonly property bool secondTargetEnabled: selectedLangCode(targetCombo2, "") !== ""
     property int autoTranslateDelayMs: 700
+    property bool isWarmingUp: false
+    property bool autoTranslatePendingAfterWarmup: false
 
     width: window.width * 0.95
     height: window.height * 0.95
@@ -133,6 +135,11 @@ Popup {
     }
 
     function requestAutoTranslate() {
+        if (isWarmingUp) {
+            autoTranslatePendingAfterWarmup = true
+            return
+        }
+
         if (!sourceInput.text.trim()) {
             translatedOutput.text = ""
             translatedOutput2.text = ""
@@ -147,10 +154,21 @@ Popup {
     }
 
     function warmupIfNeeded() {
+        if (isWarmingUp) {
+            return
+        }
+
+        isWarmingUp = true
         statusText.text = "Loading model..."
         statusText.color = window.textMuted
+        autoTranslateTimer.stop()
+        warmupStartTimer.restart()
+    }
 
+    function finishWarmup() {
         const warmup = app.warmupTranslator()
+        isWarmingUp = false
+
         if (warmup.ok) {
             let details = "Model ready"
             if (warmup.device) {
@@ -161,15 +179,15 @@ Popup {
             }
             statusText.text = details
             statusText.color = "#93c5fd"
-            requestAutoTranslate()
+            if (autoTranslatePendingAfterWarmup || sourceInput.text.trim()) {
+                autoTranslatePendingAfterWarmup = false
+                requestAutoTranslate()
+            }
         } else {
             statusText.text = warmup.error || "Translator warmup failed"
             statusText.color = "#fca5a5"
+            autoTranslatePendingAfterWarmup = false
         }
-    }
-
-    Component.onCompleted: {
-        warmupIfNeeded()
     }
 
     onVisibleChanged: {
@@ -183,6 +201,13 @@ Popup {
         interval: root.autoTranslateDelayMs
         repeat: false
         onTriggered: runTranslate()
+    }
+
+    Timer {
+        id: warmupStartTimer
+        interval: 1
+        repeat: false
+        onTriggered: finishWarmup()
     }
 
     ColumnLayout {
@@ -459,6 +484,13 @@ Popup {
         RowLayout {
             Layout.fillWidth: true
             spacing: 10
+
+            BusyIndicator {
+                running: root.isWarmingUp
+                visible: running
+                Layout.preferredWidth: 18
+                Layout.preferredHeight: 18
+            }
 
             Text {
                 id: statusText
