@@ -5,7 +5,8 @@ import QtQuick.Layouts
 Popup {
     id: root
     property bool embeddedMode: false
-    property bool secondTargetEnabled: false
+    readonly property bool secondTargetEnabled: selectedLangCode(targetCombo2, "") !== ""
+    property int autoTranslateDelayMs: 700
 
     width: window.width * 0.95
     height: window.height * 0.95
@@ -36,11 +37,27 @@ Popup {
         ListElement { label: "中文（简体）"; code: "zho_Hans" }
     }
 
-    function selectedLangCode(cb) {
-        if (cb.currentIndex < 0 || cb.currentIndex >= langModel.count) {
-            return "eng_Latn"
+    ListModel {
+        id: target2LangModel
+        ListElement { label: "None"; code: "" }
+        ListElement { label: "English"; code: "eng_Latn" }
+        ListElement { label: "Deutsch"; code: "deu_Latn" }
+        ListElement { label: "Français"; code: "fra_Latn" }
+        ListElement { label: "Español"; code: "spa_Latn" }
+        ListElement { label: "Italiano"; code: "ita_Latn" }
+        ListElement { label: "Português"; code: "por_Latn" }
+        ListElement { label: "Nederlands"; code: "nld_Latn" }
+        ListElement { label: "Tiếng Việt"; code: "vie_Latn" }
+        ListElement { label: "日本語"; code: "jpn_Jpan" }
+        ListElement { label: "한국어"; code: "kor_Hang" }
+        ListElement { label: "中文（简体）"; code: "zho_Hans" }
+    }
+
+    function selectedLangCode(cb, fallbackCode) {
+        if (!cb || !cb.model || cb.currentIndex < 0 || cb.currentIndex >= cb.model.count) {
+            return fallbackCode === undefined ? "eng_Latn" : fallbackCode
         }
-        return langModel.get(cb.currentIndex).code
+        return cb.model.get(cb.currentIndex).code
     }
 
     function swapLanguages() {
@@ -50,13 +67,21 @@ Popup {
     }
 
     function runTranslate() {
+        if (!sourceInput.text.trim()) {
+            translatedOutput.text = ""
+            translatedOutput2.text = ""
+            statusText.text = ""
+            statusText.color = window.textMuted
+            return
+        }
+
         statusText.text = "Translating..."
         statusText.color = window.textMuted
 
         const res = app.translateText(
             sourceInput.text,
-            selectedLangCode(sourceCombo),
-            selectedLangCode(targetCombo)
+            selectedLangCode(sourceCombo, "eng_Latn"),
+            selectedLangCode(targetCombo, "deu_Latn")
         )
 
         if (!res.ok) {
@@ -78,8 +103,8 @@ Popup {
         if (secondTargetEnabled) {
             const res2 = app.translateText(
                 sourceInput.text,
-                selectedLangCode(sourceCombo),
-                selectedLangCode(targetCombo2)
+                selectedLangCode(sourceCombo, "eng_Latn"),
+                selectedLangCode(targetCombo2, "")
             )
 
             if (res2.ok) {
@@ -107,6 +132,59 @@ Popup {
         statusText.color = "#93c5fd"
     }
 
+    function requestAutoTranslate() {
+        if (!sourceInput.text.trim()) {
+            translatedOutput.text = ""
+            translatedOutput2.text = ""
+            if (statusText.text !== "Loading model...") {
+                statusText.text = ""
+                statusText.color = window.textMuted
+            }
+            autoTranslateTimer.stop()
+            return
+        }
+        autoTranslateTimer.restart()
+    }
+
+    function warmupIfNeeded() {
+        statusText.text = "Loading model..."
+        statusText.color = window.textMuted
+
+        const warmup = app.warmupTranslator()
+        if (warmup.ok) {
+            let details = "Model ready"
+            if (warmup.device) {
+                details += " • device: " + warmup.device
+            }
+            if (warmup.warning) {
+                details += " • " + warmup.warning
+            }
+            statusText.text = details
+            statusText.color = "#93c5fd"
+            requestAutoTranslate()
+        } else {
+            statusText.text = warmup.error || "Translator warmup failed"
+            statusText.color = "#fca5a5"
+        }
+    }
+
+    Component.onCompleted: {
+        warmupIfNeeded()
+    }
+
+    onVisibleChanged: {
+        if (visible) {
+            warmupIfNeeded()
+        }
+    }
+
+    Timer {
+        id: autoTranslateTimer
+        interval: root.autoTranslateDelayMs
+        repeat: false
+        onTriggered: runTranslate()
+    }
+
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 16
@@ -129,7 +207,7 @@ Popup {
 
         GridLayout {
             Layout.fillWidth: true
-            columns: 3
+            columns: 4
             columnSpacing: 12
             rowSpacing: 12
 
@@ -159,8 +237,17 @@ Popup {
                         model: langModel
                         textRole: "label"
                         currentIndex: 0
+                        onCurrentIndexChanged: requestAutoTranslate()
                     }
                 }
+            }
+
+            Button {
+                text: "⇄"
+                Layout.preferredWidth: 56
+                Layout.preferredHeight: 56
+                Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+                onClicked: swapLanguages()
             }
 
             Rectangle {
@@ -189,6 +276,7 @@ Popup {
                         model: langModel
                         textRole: "label"
                         currentIndex: 1
+                        onCurrentIndexChanged: requestAutoTranslate()
                     }
                 }
             }
@@ -217,37 +305,10 @@ Popup {
                     ComboBox {
                         id: targetCombo2
                         Layout.fillWidth: true
-                        model: langModel
+                        model: target2LangModel
                         textRole: "label"
-                        currentIndex: 2
-                        enabled: root.secondTargetEnabled
-                    }
-                }
-            }
-        }
-
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: 10
-
-            Button {
-                text: "⇄"
-                Layout.preferredWidth: 56
-                onClicked: swapLanguages()
-            }
-
-            Item {
-                Layout.fillWidth: true
-            }
-
-            Button {
-                id: toggleSecondLanguageButton
-                text: root.secondTargetEnabled ? "− Sprache" : "+ Sprache"
-                Layout.preferredWidth: 110
-                onClicked: {
-                    root.secondTargetEnabled = !root.secondTargetEnabled
-                    if (!root.secondTargetEnabled) {
-                        translatedOutput2.text = ""
+                        currentIndex: 0
+                        onCurrentIndexChanged: requestAutoTranslate()
                     }
                 }
             }
@@ -291,10 +352,54 @@ Popup {
                         Layout.fillHeight: true
                         placeholderText: "Type text to translate..."
                         wrapMode: TextEdit.WrapAnywhere
+                        onTextChanged: requestAutoTranslate()
                         color: window.textPrimary
                         selectionColor: window.accentColor
                         selectedTextColor: "#ffffff"
                         font.pixelSize: 16
+                        clip: true
+                        background: Rectangle {
+                            radius: 10
+                            color: "#0f1d34"
+                            border.color: "#213a5d"
+                            border.width: 1
+                        }
+                    }
+                }
+            }
+
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                Layout.preferredWidth: 1
+                Layout.minimumWidth: 240
+                radius: 12
+                color: "#15233b"
+                border.color: "#27436b"
+                border.width: 1
+
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.margins: 10
+                    spacing: 8
+
+                    Text {
+                        text: root.secondTargetEnabled ? "Translation 1" : "Translation"
+                        color: window.textSecondary
+                        font.pixelSize: 14
+                    }
+
+                    TextArea {
+                        id: translatedOutput
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        readOnly: true
+                        wrapMode: TextEdit.WrapAnywhere
+                        color: window.textPrimary
+                        selectionColor: window.accentColor
+                        selectedTextColor: "#ffffff"
+                        font.pixelSize: 16
+                        placeholderText: "Translated text appears here..."
                         clip: true
                         background: Rectangle {
                             radius: 10
@@ -323,49 +428,6 @@ Popup {
                     spacing: 8
 
                     Text {
-                        text: "Translation 1"
-                        color: window.textSecondary
-                        font.pixelSize: 14
-                    }
-
-                    TextArea {
-                        id: translatedOutput
-                        Layout.fillWidth: true
-                        Layout.fillHeight: true
-                        readOnly: true
-                        wrapMode: TextEdit.WrapAnywhere
-                        color: window.textPrimary
-                        selectionColor: window.accentColor
-                        selectedTextColor: "#ffffff"
-                        font.pixelSize: 16
-                        placeholderText: "Translated text appears here..."
-                        clip: true
-                        background: Rectangle {
-                            radius: 10
-                            color: "#0f1d34"
-                            border.color: "#213a5d"
-                            border.width: 1
-                        }
-                    }
-                }
-            }
-
-            Rectangle {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                Layout.preferredWidth: 1
-                Layout.minimumWidth: 240
-                radius: 12
-                color: "#15233b"
-                border.color: "#27436b"
-                border.width: 1
-
-                ColumnLayout {
-                    anchors.fill: parent
-                    anchors.margins: 10
-                    spacing: 8
-
-                    Text {
                         text: "Translation 2"
                         color: window.textSecondary
                         font.pixelSize: 14
@@ -376,19 +438,16 @@ Popup {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         readOnly: true
-                        enabled: root.secondTargetEnabled
                         wrapMode: TextEdit.WrapAnywhere
-                        color: root.secondTargetEnabled ? window.textPrimary : window.textMuted
+                        color: window.textPrimary
                         selectionColor: window.accentColor
                         selectedTextColor: "#ffffff"
                         font.pixelSize: 16
-                        placeholderText: root.secondTargetEnabled
-                            ? "Second translation appears here..."
-                            : "Enable '+ Sprache' to add a second target language"
+                        placeholderText: "Second translation appears here..."
                         clip: true
                         background: Rectangle {
                             radius: 10
-                            color: root.secondTargetEnabled ? "#0f1d34" : "#12233f"
+                            color: "#0f1d34"
                             border.color: "#213a5d"
                             border.width: 1
                         }

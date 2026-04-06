@@ -1371,6 +1371,9 @@ bool AppController::ensureTranslateWorker(QString &errorMessage)
         m_translateWorker = nullptr;
     }
     m_translateStdoutBuffer.clear();
+    m_translateWorkerDevice.clear();
+    m_translateWorkerModel.clear();
+    m_translateWorkerWarning.clear();
 
     const QString scriptPath = resolveNllbScriptPath();
     if (scriptPath.isEmpty()) {
@@ -1417,7 +1420,31 @@ bool AppController::ensureTranslateWorker(QString &errorMessage)
         return false;
     }
 
+    m_translateWorkerDevice = readyObj.value("device").toString();
+    m_translateWorkerModel = readyObj.value("model").toString();
+    m_translateWorkerWarning = readyObj.value("warning").toString();
+
     return true;
+}
+
+QVariantMap AppController::warmupTranslator()
+{
+    QVariantMap out;
+
+    QString workerError;
+    if (!ensureTranslateWorker(workerError)) {
+        out["ok"] = false;
+        out["error"] = workerError.isEmpty()
+            ? QStringLiteral("Could not initialize translator worker.")
+            : workerError;
+        return out;
+    }
+
+    out["ok"] = true;
+    out["device"] = m_translateWorkerDevice;
+    out["model"] = m_translateWorkerModel;
+    out["warning"] = m_translateWorkerWarning;
+    return out;
 }
 
 QVariantMap AppController::translateTextOneShot(const QString &text, const QString &sourceLangCode, const QString &targetLangCode) const
