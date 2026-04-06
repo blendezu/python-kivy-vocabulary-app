@@ -98,49 +98,87 @@ ApplicationWindow {
         property string labelText: ""
         property bool active: false
         property color tileColor: window.surfaceAltColor
+        property bool isAccentTile: false
 
         Layout.fillWidth: true
-        Layout.preferredHeight: 48
+        Layout.preferredHeight: 54
+        hoverEnabled: true
+        scale: navTile.down ? 0.992 : 1.0
+
+        Behavior on scale { NumberAnimation { duration: 110 } }
 
         background: Rectangle {
-            radius: 12
+            id: navBg
+            radius: 14
             color: navTile.active
-                   ? Qt.rgba(window.accentColor.r, window.accentColor.g, window.accentColor.b, 0.18)
-                   : navTile.tileColor
-            border.color: navTile.active ? Qt.lighter(window.accentColor, 1.15) : "#234169"
-            border.width: navTile.active ? 1 : 0
+                   ? Qt.rgba(window.accentColor.r, window.accentColor.g, window.accentColor.b, 0.2)
+                   : (navTile.hovered
+                      ? Qt.rgba(navTile.tileColor.r, navTile.tileColor.g, navTile.tileColor.b, 0.95)
+                      : navTile.tileColor)
+            border.color: navTile.active
+                          ? Qt.lighter(window.accentColor, 1.16)
+                          : (navTile.hovered ? "#2d4f7d" : "#223a5e")
+            border.width: navTile.active || navTile.hovered ? 1 : 0
+
+            Behavior on color { ColorAnimation { duration: 120 } }
+            Behavior on border.color { ColorAnimation { duration: 120 } }
 
             Rectangle {
                 visible: navTile.active
                 anchors.left: parent.left
                 anchors.top: parent.top
                 anchors.bottom: parent.bottom
-                width: 3
+                width: 4
                 radius: 2
                 color: window.accentSoft
-                anchors.margins: 10
+                anchors.margins: 9
+            }
+
+            Rectangle {
+                anchors.fill: parent
+                radius: parent.radius
+                color: "transparent"
+                border.color: Qt.rgba(1, 1, 1, navTile.active ? 0.08 : 0.03)
+                border.width: 1
             }
         }
 
         contentItem: RowLayout {
             anchors.fill: parent
-            anchors.leftMargin: 12
-            anchors.rightMargin: 10
-            spacing: 8
+            anchors.leftMargin: 11
+            anchors.rightMargin: 12
+            spacing: 10
 
-            Text {
-                text: navTile.iconSymbol
-                color: navTile.active ? "#dbeafe" : window.textSecondary
-                font.family: "Inter"
-                font.pixelSize: 14
+            Rectangle {
+                width: 28
+                height: 28
+                radius: 9
+                color: navTile.active
+                       ? Qt.rgba(window.accentColor.r, window.accentColor.g, window.accentColor.b, 0.22)
+                       : (navTile.isAccentTile
+                          ? Qt.rgba(window.dangerColor.r, window.dangerColor.g, window.dangerColor.b, 0.14)
+                          : Qt.rgba(1, 1, 1, 0.06))
+                border.color: navTile.active
+                              ? Qt.rgba(window.accentSoft.r, window.accentSoft.g, window.accentSoft.b, 0.85)
+                              : Qt.rgba(1, 1, 1, 0.10)
+                border.width: 1
                 Layout.alignment: Qt.AlignVCenter
+
+                Text {
+                    anchors.centerIn: parent
+                    text: navTile.iconSymbol
+                    color: navTile.active ? "#dbeafe" : window.textSecondary
+                    font.family: "Inter"
+                    font.pixelSize: 14
+                    font.bold: navTile.active
+                }
             }
 
             Text {
                 text: navTile.labelText
                 color: navTile.active ? window.textPrimary : window.textSecondary
                 font.family: "Inter"
-                font.pixelSize: 15
+                font.pixelSize: 16
                 font.bold: navTile.active
                 Layout.fillWidth: true
                 Layout.alignment: Qt.AlignVCenter
@@ -157,21 +195,38 @@ ApplicationWindow {
         Rectangle {
             Layout.preferredWidth: 238
             Layout.fillHeight: true
-            radius: 20
-            color: Qt.rgba(23 / 255, 34 / 255, 53 / 255, 0.94)
+            radius: 24
+            color: Qt.rgba(19 / 255, 32 / 255, 54 / 255, 0.96)
             border.color: window.borderColor
             border.width: 1
 
+            Rectangle {
+                anchors.fill: parent
+                radius: parent.radius
+                color: "transparent"
+                border.width: 1
+                border.color: Qt.rgba(96 / 255, 165 / 255, 250 / 255, 0.16)
+            }
+
+            Rectangle {
+                anchors.top: parent.top
+                anchors.left: parent.left
+                anchors.right: parent.right
+                height: parent.height * 0.25
+                radius: parent.radius
+                color: Qt.rgba(59 / 255, 130 / 255, 246 / 255, 0.07)
+            }
+
             ColumnLayout {
                 anchors.fill: parent
-                anchors.margins: 14
-                spacing: 10
+                anchors.margins: 16
+                spacing: 11
 
                 Text {
                     text: "VocaApp"
                     color: window.textPrimary
                     font.family: "Inter"
-                    font.pixelSize: 24
+                    font.pixelSize: 25
                     font.bold: true
                 }
 
@@ -180,7 +235,15 @@ ApplicationWindow {
                     color: window.textMuted
                     font.family: "Inter"
                     font.pixelSize: 13
-                    Layout.bottomMargin: 8
+                    font.letterSpacing: 0.6
+                    Layout.bottomMargin: 4
+                }
+
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 1
+                    color: Qt.rgba(1, 1, 1, 0.07)
+                    Layout.bottomMargin: 4
                 }
 
                 NavTileButton {
@@ -229,6 +292,7 @@ ApplicationWindow {
                     iconSymbol: "↻"
                     labelText: "Review"
                     tileColor: "#3a2130"
+                    isAccentTile: true
                     active: window.activePane === "review"
                     onClicked: window.openPane("review")
                 }
@@ -248,6 +312,7 @@ ApplicationWindow {
                     wrapMode: Text.WordWrap
                     font.family: "Inter"
                     font.pixelSize: 12
+                    opacity: 0.92
                 }
             }
         }

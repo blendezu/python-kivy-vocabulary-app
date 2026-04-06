@@ -1,10 +1,12 @@
 #include <QApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
+#include <QByteArray>
 #include "AppController.h"
 
 int main(int argc, char *argv[])
 {
+    qputenv("QT_QUICK_CONTROLS_STYLE", QByteArray("Basic"));
     QApplication app(argc, argv);
 
     AppController controller;
