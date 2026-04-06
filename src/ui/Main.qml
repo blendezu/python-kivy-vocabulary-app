@@ -30,9 +30,41 @@ ApplicationWindow {
     property string selectedWord: ""
     property string selectedOrigin: ""
     property bool hintVisible: true
+    property string activePane: "home"
     property int knownCount: appState.knownSequence.length
     property int totalCount: Math.max(1, appState.vocabularyCount)
     property real knownProgress: Math.min(1.0, knownCount / totalCount)
+
+    function closeAllPanes() {
+        addNewWordsPopup.close()
+        newTextPopup.close()
+        expressionsPopup.close()
+        learnPopup.close()
+        learnedWordsPopup.close()
+        reviewPopup.close()
+        dashboardPopup.close()
+    }
+
+    function openPane(name) {
+        activePane = name
+        closeAllPanes()
+
+        if (name === "add") {
+            addNewWordsPopup.open()
+        } else if (name === "fromText") {
+            newTextPopup.open()
+        } else if (name === "expressions") {
+            expressionsPopup.open()
+        } else if (name === "learn") {
+            learnPopup.open()
+        } else if (name === "learned") {
+            learnedWordsPopup.open()
+        } else if (name === "review") {
+            reviewPopup.open()
+        } else if (name === "dashboard") {
+            dashboardPopup.open()
+        }
+    }
 
     component ColorButton : Button {
         id: control
@@ -57,6 +89,63 @@ ApplicationWindow {
             radius: 8
             border.color: Qt.lighter(control.bgColor, 1.2)
             border.width: control.hovered ? 1 : 0
+        }
+    }
+
+    component NavTileButton: Button {
+        id: navTile
+        property string iconSymbol: ""
+        property string labelText: ""
+        property bool active: false
+        property color tileColor: window.surfaceAltColor
+
+        Layout.fillWidth: true
+        Layout.preferredHeight: 48
+
+        background: Rectangle {
+            radius: 12
+            color: navTile.active
+                   ? Qt.rgba(window.accentColor.r, window.accentColor.g, window.accentColor.b, 0.18)
+                   : navTile.tileColor
+            border.color: navTile.active ? Qt.lighter(window.accentColor, 1.15) : "#234169"
+            border.width: navTile.active ? 1 : 0
+
+            Rectangle {
+                visible: navTile.active
+                anchors.left: parent.left
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
+                width: 3
+                radius: 2
+                color: window.accentSoft
+                anchors.margins: 10
+            }
+        }
+
+        contentItem: RowLayout {
+            anchors.fill: parent
+            anchors.leftMargin: 12
+            anchors.rightMargin: 10
+            spacing: 8
+
+            Text {
+                text: navTile.iconSymbol
+                color: navTile.active ? "#dbeafe" : window.textSecondary
+                font.family: "Inter"
+                font.pixelSize: 14
+                Layout.alignment: Qt.AlignVCenter
+            }
+
+            Text {
+                text: navTile.labelText
+                color: navTile.active ? window.textPrimary : window.textSecondary
+                font.family: "Inter"
+                font.pixelSize: 15
+                font.bold: navTile.active
+                Layout.fillWidth: true
+                Layout.alignment: Qt.AlignVCenter
+                elide: Text.ElideRight
+            }
         }
     }
 
@@ -94,68 +183,61 @@ ApplicationWindow {
                     Layout.bottomMargin: 8
                 }
 
-                ColorButton {
-                    text: "＋ Add new words"
-                    bgColor: window.surfaceAltColor
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: 46
-                    font.family: "Inter"
-                    font.pixelSize: 15
-                    onClicked: addNewWordsPopup.open()
+                NavTileButton {
+                    iconSymbol: "⌂"
+                    labelText: "Home"
+                    tileColor: "#1a2740"
+                    active: window.activePane === "home"
+                    onClicked: window.openPane("home")
                 }
-                ColorButton {
-                    text: "⌁ From text"
-                    bgColor: "#1d2b43"
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: 46
-                    font.family: "Inter"
-                    font.pixelSize: 15
-                    onClicked: newTextPopup.open()
+                NavTileButton {
+                    iconSymbol: "＋"
+                    labelText: "Add new words"
+                    tileColor: window.surfaceAltColor
+                    active: window.activePane === "add"
+                    onClicked: window.openPane("add")
                 }
-                ColorButton {
-                    text: "✎ Expressions"
-                    bgColor: window.surfaceAltColor
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: 46
-                    font.family: "Inter"
-                    font.pixelSize: 15
-                    onClicked: expressionsPopup.open()
+                NavTileButton {
+                    iconSymbol: "⌁"
+                    labelText: "From text"
+                    tileColor: "#1d2b43"
+                    active: window.activePane === "fromText"
+                    onClicked: window.openPane("fromText")
                 }
-                ColorButton {
-                    text: "⚡ Learn"
-                    bgColor: "#1d2f50"
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: 46
-                    font.family: "Inter"
-                    font.pixelSize: 15
-                    onClicked: learnPopup.open()
+                NavTileButton {
+                    iconSymbol: "✎"
+                    labelText: "Expressions"
+                    tileColor: window.surfaceAltColor
+                    active: window.activePane === "expressions"
+                    onClicked: window.openPane("expressions")
                 }
-                ColorButton {
-                    text: "✓ Learned words"
-                    bgColor: window.surfaceAltColor
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: 46
-                    font.family: "Inter"
-                    font.pixelSize: 15
-                    onClicked: learnedWordsPopup.open()
+                NavTileButton {
+                    iconSymbol: "⚡"
+                    labelText: "Learn"
+                    tileColor: "#1d2f50"
+                    active: window.activePane === "learn"
+                    onClicked: window.openPane("learn")
                 }
-                ColorButton {
-                    text: "↻ Review"
-                    bgColor: "#3a2130"
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: 46
-                    font.family: "Inter"
-                    font.pixelSize: 15
-                    onClicked: reviewPopup.open()
+                NavTileButton {
+                    iconSymbol: "✓"
+                    labelText: "Learned words"
+                    tileColor: window.surfaceAltColor
+                    active: window.activePane === "learned"
+                    onClicked: window.openPane("learned")
                 }
-                ColorButton {
-                    text: "◔ Dashboard"
-                    bgColor: window.surfaceAltColor
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: 46
-                    font.family: "Inter"
-                    font.pixelSize: 15
-                    onClicked: dashboardPopup.open()
+                NavTileButton {
+                    iconSymbol: "↻"
+                    labelText: "Review"
+                    tileColor: "#3a2130"
+                    active: window.activePane === "review"
+                    onClicked: window.openPane("review")
+                }
+                NavTileButton {
+                    iconSymbol: "◔"
+                    labelText: "Dashboard"
+                    tileColor: window.surfaceAltColor
+                    active: window.activePane === "dashboard"
+                    onClicked: window.openPane("dashboard")
                 }
 
                 Item { Layout.fillHeight: true }
@@ -170,23 +252,26 @@ ApplicationWindow {
             }
         }
 
-        ColumnLayout {
+        Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            spacing: 18
+            ColumnLayout {
+                anchors.fill: parent
+                visible: window.activePane === "home"
+                spacing: 28
 
-            Rectangle {
-                Layout.fillWidth: true
-                Layout.preferredHeight: 400
-                radius: 24
-                color: Qt.rgba(27 / 255, 38 / 255, 59 / 255, 0.96)
-                border.color: window.borderColor
-                border.width: 1
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 400
+                    radius: 24
+                    color: Qt.rgba(27 / 255, 38 / 255, 59 / 255, 0.96)
+                    border.color: window.borderColor
+                    border.width: 1
 
-                ColumnLayout {
-                    anchors.fill: parent
-                    anchors.margins: 30
-                    spacing: 16
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: 30
+                        spacing: 16
 
                     RowLayout {
                         Layout.fillWidth: true
@@ -354,10 +439,11 @@ ApplicationWindow {
                 }
             }
 
-            RowLayout {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                spacing: 14
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    Layout.topMargin: 6
+                    spacing: 14
 
                 Rectangle {
                     Layout.fillWidth: true
@@ -388,15 +474,26 @@ ApplicationWindow {
                             model: appState.knownSequenceDisplay
                             delegate: Rectangle {
                                 width: ListView.view.width
-                                height: 40
-                                radius: 12
+                                height: 46
+                                radius: 14
                                 property bool isSelected: window.selectedWord === modelData && window.selectedOrigin === "known"
                                 color: isSelected ? Qt.rgba(window.accentColor.r, window.accentColor.g, window.accentColor.b, 0.22) : "#111b2e"
                                 border.color: isSelected ? window.accentSoft : "#22314f"
                                 border.width: 1
+
+                                Rectangle {
+                                    anchors.left: parent.left
+                                    anchors.top: parent.top
+                                    anchors.bottom: parent.bottom
+                                    anchors.margins: 5
+                                    width: 3
+                                    radius: 2
+                                    color: isSelected ? window.accentSoft : "#2d3f60"
+                                }
+
                                 Text {
                                     anchors.left: parent.left
-                                    anchors.leftMargin: 12
+                                    anchors.leftMargin: 14
                                     anchors.verticalCenter: parent.verticalCenter
                                     anchors.right: parent.right
                                     anchors.rightMargin: 12
@@ -493,7 +590,7 @@ ApplicationWindow {
                         }
 
                         ColorButton {
-                            text: window.hintVisible ? "Hide tip" : "Show tip"
+                            text: window.hintVisible ? "◉ Hide tip" : "◉ Show tip"
                             Layout.fillWidth: true
                             Layout.preferredHeight: 44
                             font.family: "Inter"
@@ -535,15 +632,26 @@ ApplicationWindow {
                             model: appState.newSequenceDisplay
                             delegate: Rectangle {
                                 width: ListView.view.width
-                                height: 40
-                                radius: 12
+                                height: 46
+                                radius: 14
                                 property bool isSelected: window.selectedWord === modelData && window.selectedOrigin === "new"
                                 color: isSelected ? Qt.rgba(window.accentColor.r, window.accentColor.g, window.accentColor.b, 0.22) : "#111b2e"
                                 border.color: isSelected ? window.accentSoft : "#22314f"
                                 border.width: 1
+
+                                Rectangle {
+                                    anchors.left: parent.left
+                                    anchors.top: parent.top
+                                    anchors.bottom: parent.bottom
+                                    anchors.margins: 5
+                                    width: 3
+                                    radius: 2
+                                    color: isSelected ? window.accentSoft : "#2d3f60"
+                                }
+
                                 Text {
                                     anchors.left: parent.left
-                                    anchors.leftMargin: 12
+                                    anchors.leftMargin: 14
                                     anchors.verticalCenter: parent.verticalCenter
                                     anchors.right: parent.right
                                     anchors.rightMargin: 12
@@ -594,15 +702,26 @@ ApplicationWindow {
                             model: appState.removedSequence
                             delegate: Rectangle {
                                 width: ListView.view.width
-                                height: 40
-                                radius: 12
+                                height: 46
+                                radius: 14
                                 property bool isSelected: window.selectedWord === modelData && window.selectedOrigin === "removed"
                                 color: isSelected ? Qt.rgba(window.accentColor.r, window.accentColor.g, window.accentColor.b, 0.22) : "#111b2e"
                                 border.color: isSelected ? window.accentSoft : "#22314f"
                                 border.width: 1
+
+                                Rectangle {
+                                    anchors.left: parent.left
+                                    anchors.top: parent.top
+                                    anchors.bottom: parent.bottom
+                                    anchors.margins: 5
+                                    width: 3
+                                    radius: 2
+                                    color: isSelected ? window.accentSoft : "#2d3f60"
+                                }
+
                                 Text {
                                     anchors.left: parent.left
-                                    anchors.leftMargin: 12
+                                    anchors.leftMargin: 14
                                     anchors.verticalCenter: parent.verticalCenter
                                     anchors.right: parent.right
                                     anchors.rightMargin: 12
@@ -628,6 +747,13 @@ ApplicationWindow {
                         }
                     }
                 }
+                }
+            }
+
+            Item {
+                id: rightPaneHost
+                anchors.fill: parent
+                visible: window.activePane !== "home"
             }
         }
     }
@@ -635,21 +761,97 @@ ApplicationWindow {
     // --- Popups ---
     Dashboard {
         id: dashboardPopup
+        embeddedMode: true
+        parent: rightPaneHost
+        modal: false
+        focus: false
+        closePolicy: Popup.NoAutoClose
+        width: rightPaneHost.width * 0.98
+        height: rightPaneHost.height * 0.98
+        anchors.centerIn: parent
+        onClosed: if (window.activePane === "dashboard") window.activePane = "home"
     }
     
     LearnPopup {
         id: learnPopup
+        embeddedMode: true
+        parent: rightPaneHost
+        modal: false
+        focus: false
+        closePolicy: Popup.NoAutoClose
+        width: rightPaneHost.width * 0.98
+        height: rightPaneHost.height * 0.98
+        anchors.centerIn: parent
         learnedWordsPopup: learnedWordsPopup
         reviewPopup: reviewPopup
         editPopup: editPopup
+        onClosed: if (window.activePane === "learn") window.activePane = "home"
     }
-    ReviewPopup { id: reviewPopup }
+    ReviewPopup {
+        id: reviewPopup
+        embeddedMode: true
+        parent: rightPaneHost
+        modal: false
+        focus: false
+        closePolicy: Popup.NoAutoClose
+        width: rightPaneHost.width * 0.98
+        height: rightPaneHost.height * 0.98
+        anchors.centerIn: parent
+        onClosed: if (window.activePane === "review") window.activePane = "home"
+    }
     WordEditPopup { id: editPopup }
     CorrectWordPopup { id: correctWordPopup }
 
-    AddNewWordsPopup { id: addNewWordsPopup }
-    NewWordsFromTextPopup { id: newTextPopup; wordListPopup: wordListPopup }
-    ExpressionsPopup { id: expressionsPopup; editPopupRef: editPopup }
-    LearnedWordsPopup { id: learnedWordsPopup; editPopupRef: editPopup }
+    AddNewWordsPopup {
+        id: addNewWordsPopup
+        embeddedMode: true
+        parent: rightPaneHost
+        modal: false
+        focus: false
+        closePolicy: Popup.NoAutoClose
+        width: rightPaneHost.width * 0.98
+        height: rightPaneHost.height * 0.98
+        anchors.centerIn: parent
+        onClosed: if (window.activePane === "add") window.activePane = "home"
+    }
+    NewWordsFromTextPopup {
+        id: newTextPopup
+        embeddedMode: true
+        parent: rightPaneHost
+        modal: false
+        focus: false
+        closePolicy: Popup.NoAutoClose
+        width: rightPaneHost.width * 0.98
+        height: rightPaneHost.height * 0.98
+        anchors.centerIn: parent
+        wordListPopup: wordListPopup
+        onClosed: if (window.activePane === "fromText") window.activePane = "home"
+    }
+    ExpressionsPopup {
+        id: expressionsPopup
+        embeddedMode: true
+        parent: rightPaneHost
+        modal: false
+        focus: false
+        closePolicy: Popup.NoAutoClose
+        width: rightPaneHost.width * 0.98
+        height: rightPaneHost.height * 0.98
+        anchors.centerIn: parent
+        editPopupRef: editPopup
+        onClosed: if (window.activePane === "expressions") window.activePane = "home"
+    }
+    LearnedWordsPopup {
+        id: learnedWordsPopup
+        embeddedMode: true
+        parent: rightPaneHost
+        modal: false
+        focus: false
+        closePolicy: Popup.NoAutoClose
+        width: rightPaneHost.width * 0.98
+        height: rightPaneHost.height * 0.98
+        anchors.centerIn: parent
+        editPopupRef: editPopup
+        onClosed: if (window.activePane === "learned") window.activePane = "home"
+    }
     WordListPopup { id: wordListPopup }
 }

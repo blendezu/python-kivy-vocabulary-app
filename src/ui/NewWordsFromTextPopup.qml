@@ -4,6 +4,7 @@ import QtQuick.Layouts
 
 Popup {
     id: root
+    property bool embeddedMode: false
     // injected from Main.qml
     property var wordListPopup: null
     width: window.width * 0.9
@@ -34,7 +35,11 @@ Popup {
         RowLayout {
             Layout.fillWidth: true
             spacing: 8
-            Button { text: "Cancel"; onClicked: root.close() }
+            Button {
+                text: "Cancel"
+                visible: !root.embeddedMode
+                onClicked: root.close()
+            }
             Button {
                 text: "Scan"
                 onClicked: {

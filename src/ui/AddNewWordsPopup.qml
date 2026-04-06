@@ -4,6 +4,7 @@ import QtQuick.Layouts
 
 Popup {
     id: root
+    property bool embeddedMode: false
     width: window.width * 0.9
     height: window.height * 0.8
     modal: true
@@ -41,6 +42,7 @@ Popup {
             
             Button { 
                 text: "Cancel"
+                visible: !root.embeddedMode
                 onClicked: root.close() 
             }
             

@@ -4,6 +4,7 @@ import QtQuick.Layouts
 
 Popup {
     id: root
+    property bool embeddedMode: false
     width: window.width * 0.95
     height: window.height * 0.95
     modal: true
@@ -51,6 +52,7 @@ Popup {
             Layout.fillWidth: true
             Button {
                 text: "<"
+                visible: !root.embeddedMode
                 font.pixelSize: 24
                 palette.buttonText: window.textPrimary
                 palette.button: "transparent"
@@ -175,6 +177,7 @@ Popup {
         
         Button {
             text: "Close"
+            visible: !root.embeddedMode
             Layout.fillWidth: true
             Layout.preferredHeight: 50
             palette.button: window.surfaceAltColor

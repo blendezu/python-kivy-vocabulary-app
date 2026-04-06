@@ -4,6 +4,7 @@ import QtQuick.Layouts
 
 Popup {
     id: root
+    property bool embeddedMode: false
     property var editPopupRef: null
     property var exprItems: []
 
@@ -135,6 +136,7 @@ Popup {
             
             Button { 
                 text: "Close"
+                visible: !root.embeddedMode
                 font.pixelSize: 20
                 Layout.fillWidth: true
                 Layout.preferredHeight: 64
