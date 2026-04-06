@@ -6,78 +6,33 @@ import Voca
 
 ApplicationWindow {
     id: window
-    width: 1000
+    width: 1280
     height: 900
     visible: true
-    title: qsTr("VocaApp C++")
-    color: "#121419"
+    title: qsTr("VocaApp")
+    color: "#0b1220"
 
-    // Shared theme colors (purple accent)
-    property color accentColor: '#6f5da5'
-    property color accentStrong: "#6f5da5"
-    property color accentSoft: "#6f5da5"
-    property color surfaceColor: "#1d1f26"
-    property color surfaceAltColor: "#2a2d36"
-    property color borderColor: "#6f5da5"
-    property color textPrimary: "#edf0f7"
-    property color textSecondary: "#c7ccda"
-    property color textMuted: "#6f5da5"
-    property color dangerColor: '#c87286'
-    property string themeMode: "lila"
-
-    function applyTheme(mode) {
-        themeMode = mode
-        if (mode === "turquesa") {
-            accentColor = "#2f8f9d"
-            accentStrong = "#2b7f8b"
-            accentSoft = "#78aeb6"
-            surfaceColor = "#1b2124"
-            surfaceAltColor = "#263237"
-            borderColor = "#2f8f9d"
-            textPrimary = "#eaf2f3"
-            textSecondary = "#c3d5d8"
-            textMuted = "#7da1a6"
-            dangerColor = "#b16c77"
-        } else {
-            accentColor = "#6f5da5"
-            accentStrong = "#6f5da5"
-            accentSoft = "#6f5da5"
-            surfaceColor = "#1d1f26"
-            surfaceAltColor = "#2a2d36"
-            borderColor = "#6f5da5"
-            textPrimary = "#edf0f7"
-            textSecondary = "#c7ccda"
-            textMuted = "#6f5da5"
-            dangerColor = "#c87286"
-        }
-    }
-
-    Component.onCompleted: applyTheme(themeMode)
-
-    menuBar: MenuBar {
-        Menu {
-            title: "Theme"
-
-            MenuItem {
-                text: "Lila"
-                checkable: true
-                checked: window.themeMode === "lila"
-                onTriggered: window.applyTheme("lila")
-            }
-
-            MenuItem {
-                text: "Turquesa"
-                checkable: true
-                checked: window.themeMode === "turquesa"
-                onTriggered: window.applyTheme("turquesa")
-            }
-        }
-    }
+    // Modern clean dark theme
+    property color accentColor: "#3b82f6"      // Electric blue
+    property color accentStrong: "#2563eb"
+    property color accentSoft: "#60a5fa"
+    property color surfaceColor: "#1b263b"
+    property color surfaceAltColor: "#172235"
+    property color borderColor: "#2a3b5e"
+    property color textPrimary: "#e5ecff"
+    property color textSecondary: "#9fb2d7"
+    property color textMuted: "#7b8db1"
+    property color successColor: "#22c55e"
+    property color dangerColor: "#ef4444"
 
     property var appState: app.state
-    
+
     property string selectedWord: ""
     property string selectedOrigin: ""
+    property bool hintVisible: true
+    property int knownCount: appState.knownSequence.length
+    property int totalCount: Math.max(1, appState.vocabularyCount)
+    property real knownProgress: Math.min(1.0, knownCount / totalCount)
 
     component ColorButton : Button {
         id: control
@@ -105,422 +60,569 @@ ApplicationWindow {
         }
     }
 
-    ColumnLayout {
+    RowLayout {
         anchors.fill: parent
-        anchors.margins: 16
-        spacing: 16
+        anchors.margins: 22
+        spacing: 18
 
-        // --- Top Bar (7 Buttons) ---
-        RowLayout {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 100
-            spacing: 8
+        Rectangle {
+            Layout.preferredWidth: 238
+            Layout.fillHeight: true
+            radius: 20
+            color: Qt.rgba(23 / 255, 34 / 255, 53 / 255, 0.94)
+            border.color: window.borderColor
+            border.width: 1
 
-            ColorButton {
-                text: "Add new words"
-                Layout.fillWidth: true
-                Layout.preferredWidth: 1
-                Layout.fillHeight: true
-                font.pixelSize: 18
-                bgColor: window.surfaceAltColor
-                onClicked: addNewWordsPopup.open()
-            }
-            ColorButton {
-                text: "Check for new\nwords from text"
-                Layout.fillWidth: true
-                Layout.preferredWidth: 1
-                Layout.fillHeight: true
-                font.pixelSize: 18
-                bgColor: window.accentColor
-                onClicked: newTextPopup.open()
-            }
-            ColorButton {
-                text: "Expressions"
-                Layout.fillWidth: true
-                Layout.preferredWidth: 1
-                Layout.fillHeight: true
-                font.pixelSize: 18
-                bgColor: window.accentStrong
-                onClicked: expressionsPopup.open()
-            }
-            ColorButton {
-                text: "Learn"
-                Layout.fillWidth: true
-                Layout.preferredWidth: 1
-                Layout.fillHeight: true
-                font.pixelSize: 18
-                bgColor: window.accentStrong
-                onClicked: learnPopup.open()
-            }
-            ColorButton {
-                text: "Learned words"
-                Layout.fillWidth: true
-                Layout.preferredWidth: 1
-                Layout.fillHeight: true
-                font.pixelSize: 18
-                bgColor: window.accentStrong
-                onClicked: learnedWordsPopup.open()
-            }
-            ColorButton {
-                text: "Review"
-                Layout.fillWidth: true
-                Layout.preferredWidth: 1
-                Layout.fillHeight: true
-                font.pixelSize: 18
-                bgColor: window.dangerColor
-                onClicked: reviewPopup.open()
-            }
-            ColorButton {
-                text: "Dashboard"
-                Layout.fillWidth: true
-                Layout.preferredWidth: 1
-                Layout.fillHeight: true
-                font.pixelSize: 18
-                bgColor: window.surfaceAltColor
-                onClicked: dashboardPopup.open()
+            ColumnLayout {
+                anchors.fill: parent
+                anchors.margins: 14
+                spacing: 10
+
+                Text {
+                    text: "VocaApp"
+                    color: window.textPrimary
+                    font.family: "Inter"
+                    font.pixelSize: 24
+                    font.bold: true
+                }
+
+                Text {
+                    text: "Navigate"
+                    color: window.textMuted
+                    font.family: "Inter"
+                    font.pixelSize: 13
+                    Layout.bottomMargin: 8
+                }
+
+                ColorButton {
+                    text: "＋ Add new words"
+                    bgColor: window.surfaceAltColor
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 46
+                    font.family: "Inter"
+                    font.pixelSize: 15
+                    onClicked: addNewWordsPopup.open()
+                }
+                ColorButton {
+                    text: "⌁ From text"
+                    bgColor: "#1d2b43"
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 46
+                    font.family: "Inter"
+                    font.pixelSize: 15
+                    onClicked: newTextPopup.open()
+                }
+                ColorButton {
+                    text: "✎ Expressions"
+                    bgColor: window.surfaceAltColor
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 46
+                    font.family: "Inter"
+                    font.pixelSize: 15
+                    onClicked: expressionsPopup.open()
+                }
+                ColorButton {
+                    text: "⚡ Learn"
+                    bgColor: "#1d2f50"
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 46
+                    font.family: "Inter"
+                    font.pixelSize: 15
+                    onClicked: learnPopup.open()
+                }
+                ColorButton {
+                    text: "✓ Learned words"
+                    bgColor: window.surfaceAltColor
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 46
+                    font.family: "Inter"
+                    font.pixelSize: 15
+                    onClicked: learnedWordsPopup.open()
+                }
+                ColorButton {
+                    text: "↻ Review"
+                    bgColor: "#3a2130"
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 46
+                    font.family: "Inter"
+                    font.pixelSize: 15
+                    onClicked: reviewPopup.open()
+                }
+                ColorButton {
+                    text: "◔ Dashboard"
+                    bgColor: window.surfaceAltColor
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 46
+                    font.family: "Inter"
+                    font.pixelSize: 15
+                    onClicked: dashboardPopup.open()
+                }
+
+                Item { Layout.fillHeight: true }
+
+                Text {
+                    text: "Double-click removed words to restore"
+                    color: window.textMuted
+                    wrapMode: Text.WordWrap
+                    font.family: "Inter"
+                    font.pixelSize: 12
+                }
             }
         }
 
-        // --- Central Word Display ---
         ColumnLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            spacing: 10
+            spacing: 18
 
-            Item { Layout.fillHeight: true; Layout.minimumHeight: 20 }
-
-            Text {
-                text: appState.currentWord !== "" ? appState.currentWord : "Done!"
-                color: window.textPrimary
-                font.pixelSize: 64
-                font.bold: false
+            Rectangle {
                 Layout.fillWidth: true
-                horizontalAlignment: Text.AlignHCenter
+                Layout.preferredHeight: 400
+                radius: 24
+                color: Qt.rgba(27 / 255, 38 / 255, 59 / 255, 0.96)
+                border.color: window.borderColor
+                border.width: 1
+
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.margins: 30
+                    spacing: 16
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 20
+
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 10
+
+                            Text {
+                                text: "Current word"
+                                color: window.textMuted
+                                font.family: "Inter"
+                                font.pixelSize: 14
+                            }
+
+                            Text {
+                                text: appState.currentWord !== "" ? appState.currentWord : "Done"
+                                color: window.textPrimary
+                                font.family: "Inter"
+                                font.pixelSize: appState.currentWord !== "" ? 62 : 52
+                                font.weight: Font.DemiBold
+                                Layout.fillWidth: true
+                                wrapMode: Text.WordWrap
+                            }
+
+                            Text {
+                                text: appState.remainingCount + " words left"
+                                color: window.textSecondary
+                                font.family: "Inter"
+                                font.pixelSize: 20
+                            }
+                        }
+
+                        Item {
+                            width: 170
+                            height: 170
+
+                            Canvas {
+                                id: progressRing
+                                anchors.fill: parent
+
+                                Component.onCompleted: requestPaint()
+
+                                onPaint: {
+                                    const ctx = getContext("2d")
+                                    const centerX = width / 2
+                                    const centerY = height / 2
+                                    const radius = Math.min(width, height) / 2 - 11
+                                    const start = -Math.PI / 2
+                                    const end = start + (Math.PI * 2 * window.knownProgress)
+
+                                    ctx.reset()
+                                    ctx.lineWidth = 14
+                                    ctx.lineCap = "round"
+
+                                    ctx.strokeStyle = "#2b3958"
+                                    ctx.beginPath()
+                                    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2)
+                                    ctx.stroke()
+
+                                    const gradient = ctx.createLinearGradient(0, 0, width, height)
+                                    gradient.addColorStop(0, "#60a5fa")
+                                    gradient.addColorStop(1, "#2563eb")
+
+                                    ctx.strokeStyle = gradient
+                                    ctx.beginPath()
+                                    ctx.arc(centerX, centerY, radius, start, end)
+                                    ctx.stroke()
+                                }
+                            }
+
+                            Connections {
+                                target: window
+                                function onKnownProgressChanged() { progressRing.requestPaint() }
+                            }
+
+                            Column {
+                                anchors.centerIn: parent
+                                spacing: 4
+
+                                Text {
+                                    text: Math.round(window.knownProgress * 100) + "%"
+                                    color: window.textPrimary
+                                    font.family: "Inter"
+                                    font.pixelSize: 28
+                                    font.bold: true
+                                    horizontalAlignment: Text.AlignHCenter
+                                }
+                                Text {
+                                    text: "known"
+                                    color: window.textMuted
+                                    font.family: "Inter"
+                                    font.pixelSize: 13
+                                    horizontalAlignment: Text.AlignHCenter
+                                }
+                            }
+                        }
+                    }
+
+                    Rectangle {
+                        Layout.fillWidth: true
+                        height: 1
+                        color: window.borderColor
+                    }
+
+                    Text {
+                        text: window.hintVisible ? "Tip: Next marks this word as known, New word keeps it in learning, Remove moves it to removed list." : ""
+                        visible: window.hintVisible
+                        color: window.textMuted
+                        font.family: "Inter"
+                        font.pixelSize: 14
+                        wrapMode: Text.WordWrap
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 12
+
+                        ColorButton {
+                            text: "Remove"
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 56
+                            font.family: "Inter"
+                            font.pixelSize: 18
+                            bgColor: window.dangerColor
+                            onClicked: app.removeCurrentWord()
+                        }
+                        ColorButton {
+                            text: "Next word"
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 56
+                            font.family: "Inter"
+                            font.pixelSize: 18
+                            bgColor: window.accentStrong
+                            onClicked: app.requestNextWord()
+                        }
+                        ColorButton {
+                            text: "Correct"
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 56
+                            font.family: "Inter"
+                            font.pixelSize: 18
+                            bgColor: window.accentColor
+                            onClicked: {
+                                if (appState.currentWord !== "") {
+                                    correctWordPopup.openForWord(appState.currentWord)
+                                }
+                            }
+                        }
+                        ColorButton {
+                            text: "New word"
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 56
+                            font.family: "Inter"
+                            font.pixelSize: 18
+                            bgColor: "#1d4ed8"
+                            onClicked: {
+                                if (appState.currentWord !== "") {
+                                    app.markWordNew(appState.currentWord)
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
-            Text {
-                text: appState.remainingCount + " Words left"
-                color: window.textSecondary
-                font.pixelSize: 24
-                visible: true
-                Layout.fillWidth: true
-                horizontalAlignment: Text.AlignHCenter
-                Layout.topMargin: 20
-            }
-
-            // Hint toggle row
             RowLayout {
                 Layout.fillWidth: true
-                Layout.topMargin: 10
-                Item { Layout.fillWidth: true }
-                Text {
-                    property bool hintVisible: true
-                    id: hintToggle
-                    text: hintVisible ? "▾ Note" : "▸ Note"
-                    color: window.textMuted
-                    font.pixelSize: 13
-                    MouseArea {
-                        anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: hintToggle.hintVisible = !hintToggle.hintVisible
-                    }
-                }
-                Item { Layout.fillWidth: true }
-            }
-
-            Text {
-                text: "Note: The current word is automatically marked as 'Known' when you click 'Next word'. Tap 'New word' to move it to 'New words'. Double-tap a removed word to restore it."
-                color: window.textSecondary
-                font.pixelSize: 13
-                wrapMode: Text.WordWrap
-                horizontalAlignment: Text.AlignHCenter
-                Layout.fillWidth: true
-                leftPadding: width * 0.1
-                rightPadding: width * 0.1
-                visible: hintToggle.hintVisible
-                opacity: hintToggle.hintVisible ? 1.0 : 0.0
-                Behavior on opacity { NumberAnimation { duration: 150 } }
-            }
-
-            Item { Layout.fillHeight: true; Layout.minimumHeight: 20 }
-        }
-
-        // --- Middle 2x2 Buttons ---
-        GridLayout {
-            columns: 2
-            Layout.fillWidth: true
-            Layout.preferredHeight: 140
-            rowSpacing: 12
-            columnSpacing: 12
-
-            ColorButton {
-                text: "Remove this word"
-                Layout.fillWidth: true
-                Layout.preferredWidth: 1
                 Layout.fillHeight: true
-                font.pixelSize: 24
-                bgColor: window.dangerColor
-                onClicked: app.removeCurrentWord()
-            }
-            ColorButton {
-                text: "Next word"
-                Layout.fillWidth: true
-                Layout.preferredWidth: 1
-                Layout.fillHeight: true
-                font.pixelSize: 24
-                bgColor: window.accentStrong
-                onClicked: app.requestNextWord()
-            }
-            ColorButton {
-                text: "Correct"
-                Layout.fillWidth: true
-                Layout.preferredWidth: 1
-                Layout.fillHeight: true
-                font.pixelSize: 24
-                bgColor: window.accentColor
-                onClicked: {
-                    if (appState.currentWord !== "") {
-                        correctWordPopup.openForWord(appState.currentWord);
-                    }
-                }
-            }
-            ColorButton {
-                text: "New word"
-                Layout.fillWidth: true
-                Layout.preferredWidth: 1
-                Layout.fillHeight: true
-                font.pixelSize: 24
-                bgColor: window.accentColor
-                onClicked: {
-                    if (appState.currentWord !== "") app.markWordNew(appState.currentWord)
-                }
-            }
-        }
+                spacing: 14
 
-        // --- Bottom 3 list columns ---
-        RowLayout {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 250 // Give it explicit height so it doesn't squash to 0
-            spacing: 12
-
-            // Known Words
-            ColumnLayout {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                Layout.preferredWidth: 100
-                spacing: 4
-                Rectangle {
-                    Layout.fillWidth: true
-                    height: 35
-                    color: window.accentStrong
-                    radius: 4
-                    Text {
-                        anchors.fill: parent
-                        anchors.margins: 4
-                        text: "Known words (" + appState.knownSequence.length + "/" + appState.vocabularyCount + ")"
-                        color: "white"
-                        font.pixelSize: 16
-                        font.bold: true
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                        wrapMode: Text.WordWrap
-                        elide: Text.ElideRight
-                        fontSizeMode: Text.Fit
-                        minimumPixelSize: 10
-                    }
-                }
                 Rectangle {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    color: "transparent"
+                    radius: 18
+                    color: window.surfaceAltColor
                     border.color: window.borderColor
-                    clip: true
-                    ListView {
+                    border.width: 1
+
+                    ColumnLayout {
                         anchors.fill: parent
-                        model: appState.knownSequenceDisplay
-                        delegate: Rectangle {
-                            width: ListView.view.width
-                            height: 35
-                            property bool isSelected: window.selectedWord === modelData && window.selectedOrigin === "known"
-                            color: isSelected ? window.accentStrong : (index % 2 === 0 ? window.surfaceColor : window.surfaceAltColor)
-                            Text {
-                                anchors.centerIn: parent
-                                text: modelData
-                                color: window.textPrimary
-                                font.pixelSize: 14
-                            }
-                            MouseArea {
-                                anchors.fill: parent
-                                onClicked: {
-                                    window.selectedWord = modelData;
-                                    window.selectedOrigin = "known";
+                        anchors.margins: 14
+                        spacing: 10
+
+                        Text {
+                            text: "✓ Known words (" + appState.knownSequence.length + "/" + appState.vocabularyCount + ")"
+                            color: window.successColor
+                            font.family: "Inter"
+                            font.pixelSize: 16
+                            font.bold: true
+                        }
+
+                        ListView {
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            clip: true
+                            spacing: 8
+                            model: appState.knownSequenceDisplay
+                            delegate: Rectangle {
+                                width: ListView.view.width
+                                height: 40
+                                radius: 12
+                                property bool isSelected: window.selectedWord === modelData && window.selectedOrigin === "known"
+                                color: isSelected ? Qt.rgba(window.accentColor.r, window.accentColor.g, window.accentColor.b, 0.22) : "#111b2e"
+                                border.color: isSelected ? window.accentSoft : "#22314f"
+                                border.width: 1
+                                Text {
+                                    anchors.left: parent.left
+                                    anchors.leftMargin: 12
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    anchors.right: parent.right
+                                    anchors.rightMargin: 12
+                                    text: modelData
+                                    color: window.textSecondary
+                                    font.family: "Inter"
+                                    font.pixelSize: 14
+                                    elide: Text.ElideRight
+                                }
+                                MouseArea {
+                                    anchors.fill: parent
+                                    onClicked: {
+                                        window.selectedWord = modelData
+                                        window.selectedOrigin = "known"
+                                    }
                                 }
                             }
                         }
                     }
                 }
-            }
 
-            // Transfer Buttons Middle Column
-            ColumnLayout {
-                Layout.preferredWidth: 35
-                Layout.maximumWidth: 35
-                Layout.fillHeight: true
-                spacing: 8
-                Item { Layout.fillHeight: true }
-                ColorButton {
-                    text: ">>"
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: 35
-                    bgColor: window.selectedWord !== "" && window.selectedOrigin === "known" ? window.surfaceAltColor : window.surfaceColor
-                    enabled: window.selectedWord !== "" && window.selectedOrigin === "known"
-                    onClicked: {
-                        app.moveWordToNew(window.selectedWord);
-                        window.selectedWord = "";
-                        window.selectedOrigin = "";
-                    }
-                }
-                ColorButton {
-                    text: "<<"
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: 35
-                    bgColor: window.selectedWord !== "" && window.selectedOrigin === "new" ? window.surfaceAltColor : window.surfaceColor
-                    enabled: window.selectedWord !== "" && window.selectedOrigin === "new"
-                    onClicked: {
-                        app.moveWordToKnown(window.selectedWord);
-                        window.selectedWord = "";
-                        window.selectedOrigin = "";
-                    }
-                }
-                ColorButton {
-                    text: "X"
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: 35
-                    bgColor: window.selectedWord !== "" && (window.selectedOrigin === "known" || window.selectedOrigin === "new") ? window.dangerColor : "#3e3035"
-                    enabled: window.selectedWord !== "" && (window.selectedOrigin === "known" || window.selectedOrigin === "new")
-                    onClicked: {
-                        app.removeWord(window.selectedWord);
-                        window.selectedWord = "";
-                        window.selectedOrigin = "";
-                    }
-                }
-                Item { Layout.fillHeight: true }
-            }
-
-            // New Words
-            ColumnLayout {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                Layout.preferredWidth: 100
-                spacing: 4
                 Rectangle {
-                    Layout.fillWidth: true
-                    height: 35
-                    color: window.accentColor
-                    radius: 4
-                    Text {
+                    Layout.preferredWidth: 190
+                    Layout.fillHeight: true
+                    radius: 18
+                    color: window.surfaceAltColor
+                    border.color: window.borderColor
+                    border.width: 1
+
+                    ColumnLayout {
                         anchors.fill: parent
-                        anchors.margins: 4
-                        text: "New words (" + appState.newSequence.length + "/" + appState.vocabularyCount + ")"
-                        color: "white"
-                        font.pixelSize: 16
-                        font.bold: true
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                        wrapMode: Text.WordWrap
-                        elide: Text.ElideRight
-                        fontSizeMode: Text.Fit
-                        minimumPixelSize: 10
+                        anchors.margins: 12
+                        spacing: 10
+
+                        Text {
+                            text: "Actions"
+                            color: window.textPrimary
+                            font.family: "Inter"
+                            font.pixelSize: 16
+                            font.bold: true
+                        }
+
+                        Text {
+                            text: window.selectedWord === "" ? "Select a word card" : "Selected: " + window.selectedWord
+                            color: window.textMuted
+                            font.family: "Inter"
+                            font.pixelSize: 12
+                            wrapMode: Text.WordWrap
+                        }
+
+                        ColorButton {
+                            text: "→ Move to New"
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 44
+                            font.family: "Inter"
+                            font.pixelSize: 14
+                            bgColor: "#1d4ed8"
+                            enabled: window.selectedWord !== "" && window.selectedOrigin === "known"
+                            onClicked: {
+                                app.moveWordToNew(window.selectedWord)
+                                window.selectedWord = ""
+                                window.selectedOrigin = ""
+                            }
+                        }
+
+                        ColorButton {
+                            text: "← Move to Known"
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 44
+                            font.family: "Inter"
+                            font.pixelSize: 14
+                            bgColor: window.accentStrong
+                            enabled: window.selectedWord !== "" && window.selectedOrigin === "new"
+                            onClicked: {
+                                app.moveWordToKnown(window.selectedWord)
+                                window.selectedWord = ""
+                                window.selectedOrigin = ""
+                            }
+                        }
+
+                        ColorButton {
+                            text: "✕ Remove"
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 44
+                            font.family: "Inter"
+                            font.pixelSize: 14
+                            bgColor: window.dangerColor
+                            enabled: window.selectedWord !== "" && (window.selectedOrigin === "known" || window.selectedOrigin === "new")
+                            onClicked: {
+                                app.removeWord(window.selectedWord)
+                                window.selectedWord = ""
+                                window.selectedOrigin = ""
+                            }
+                        }
+
+                        ColorButton {
+                            text: window.hintVisible ? "Hide tip" : "Show tip"
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 44
+                            font.family: "Inter"
+                            font.pixelSize: 14
+                            bgColor: "#13203a"
+                            onClicked: window.hintVisible = !window.hintVisible
+                        }
+
+                        Item { Layout.fillHeight: true }
                     }
                 }
+
                 Rectangle {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    color: "transparent"
+                    radius: 18
+                    color: window.surfaceAltColor
                     border.color: window.borderColor
-                    clip: true
-                    ListView {
+                    border.width: 1
+
+                    ColumnLayout {
                         anchors.fill: parent
-                        model: appState.newSequenceDisplay
-                        delegate: Rectangle {
-                            width: ListView.view.width
-                            height: 35
-                            property bool isSelected: window.selectedWord === modelData && window.selectedOrigin === "new"
-                            color: isSelected ? window.accentStrong : (index % 2 === 0 ? window.surfaceColor : window.surfaceAltColor)
-                            Text {
-                                anchors.centerIn: parent
-                                text: modelData
-                                color: window.textPrimary
-                                font.pixelSize: 14
-                            }
-                            MouseArea {
-                                anchors.fill: parent
-                                onClicked: {
-                                    window.selectedWord = modelData;
-                                    window.selectedOrigin = "new";
+                        anchors.margins: 14
+                        spacing: 10
+
+                        Text {
+                            text: "• New words (" + appState.newSequence.length + "/" + appState.vocabularyCount + ")"
+                            color: window.accentColor
+                            font.family: "Inter"
+                            font.pixelSize: 16
+                            font.bold: true
+                        }
+
+                        ListView {
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            clip: true
+                            spacing: 8
+                            model: appState.newSequenceDisplay
+                            delegate: Rectangle {
+                                width: ListView.view.width
+                                height: 40
+                                radius: 12
+                                property bool isSelected: window.selectedWord === modelData && window.selectedOrigin === "new"
+                                color: isSelected ? Qt.rgba(window.accentColor.r, window.accentColor.g, window.accentColor.b, 0.22) : "#111b2e"
+                                border.color: isSelected ? window.accentSoft : "#22314f"
+                                border.width: 1
+                                Text {
+                                    anchors.left: parent.left
+                                    anchors.leftMargin: 12
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    anchors.right: parent.right
+                                    anchors.rightMargin: 12
+                                    text: modelData
+                                    color: window.textSecondary
+                                    font.family: "Inter"
+                                    font.pixelSize: 14
+                                    elide: Text.ElideRight
+                                }
+                                MouseArea {
+                                    anchors.fill: parent
+                                    onClicked: {
+                                        window.selectedWord = modelData
+                                        window.selectedOrigin = "new"
+                                    }
                                 }
                             }
                         }
                     }
                 }
-            }
 
-            // Removed Words
-            ColumnLayout {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                Layout.preferredWidth: 100
-                spacing: 4
-                Rectangle {
-                    Layout.fillWidth: true
-                    height: 35
-                    color: window.dangerColor
-                    radius: 4
-                    Text {
-                        anchors.fill: parent
-                        anchors.margins: 4
-                        text: "Removed words (" + appState.removedSequence.length + ")"
-                        color: "white"
-                        font.pixelSize: 16
-                        font.bold: true
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                        wrapMode: Text.WordWrap
-                        elide: Text.ElideRight
-                        fontSizeMode: Text.Fit
-                        minimumPixelSize: 10
-                    }
-                }
                 Rectangle {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    color: "transparent"
+                    radius: 18
+                    color: window.surfaceAltColor
                     border.color: window.borderColor
-                    clip: true
-                    ListView {
+                    border.width: 1
+
+                    ColumnLayout {
                         anchors.fill: parent
-                        model: appState.removedSequence
-                        delegate: Rectangle {
-                            width: ListView.view.width
-                            height: 35
-                            property bool isSelected: window.selectedWord === modelData && window.selectedOrigin === "removed"
-                            color: isSelected ? window.accentStrong : (index % 2 === 0 ? window.surfaceColor : window.surfaceAltColor)
-                            Text {
-                                anchors.centerIn: parent
-                                text: modelData
-                                color: window.textPrimary
-                                font.pixelSize: 14
-                            }
-                            MouseArea {
-                                anchors.fill: parent
-                                onClicked: {
-                                    window.selectedWord = modelData;
-                                    window.selectedOrigin = "removed";
+                        anchors.margins: 14
+                        spacing: 10
+
+                        Text {
+                            text: "− Removed words (" + appState.removedSequence.length + ")"
+                            color: window.dangerColor
+                            font.family: "Inter"
+                            font.pixelSize: 16
+                            font.bold: true
+                        }
+
+                        ListView {
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            clip: true
+                            spacing: 8
+                            model: appState.removedSequence
+                            delegate: Rectangle {
+                                width: ListView.view.width
+                                height: 40
+                                radius: 12
+                                property bool isSelected: window.selectedWord === modelData && window.selectedOrigin === "removed"
+                                color: isSelected ? Qt.rgba(window.accentColor.r, window.accentColor.g, window.accentColor.b, 0.22) : "#111b2e"
+                                border.color: isSelected ? window.accentSoft : "#22314f"
+                                border.width: 1
+                                Text {
+                                    anchors.left: parent.left
+                                    anchors.leftMargin: 12
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    anchors.right: parent.right
+                                    anchors.rightMargin: 12
+                                    text: modelData
+                                    color: window.textSecondary
+                                    font.family: "Inter"
+                                    font.pixelSize: 14
+                                    elide: Text.ElideRight
                                 }
-                                onDoubleClicked: {
-                                    app.restoreRemovedWord(modelData);
-                                    window.selectedWord = "";
-                                    window.selectedOrigin = "";
+                                MouseArea {
+                                    anchors.fill: parent
+                                    onClicked: {
+                                        window.selectedWord = modelData
+                                        window.selectedOrigin = "removed"
+                                    }
+                                    onDoubleClicked: {
+                                        app.restoreRemovedWord(modelData)
+                                        window.selectedWord = ""
+                                        window.selectedOrigin = ""
+                                    }
                                 }
                             }
                         }
