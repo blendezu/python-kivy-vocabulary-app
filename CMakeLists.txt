@@ -5,7 +5,7 @@ project(VocaCpp VERSION 0.1 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Qt6 6.4 REQUIRED COMPONENTS Quick Widgets Multimedia TextToSpeech Concurrent)
+find_package(Qt6 6.4 REQUIRED COMPONENTS Quick Widgets Multimedia TextToSpeech Concurrent Pdf PdfQuick)
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
@@ -51,6 +51,8 @@ target_link_libraries(VocaCpp
     Qt6::Multimedia
     Qt6::TextToSpeech
     Qt6::Concurrent
+    Qt6::Pdf
+    Qt6::PdfQuick
     whisper
 )
 
@@ -70,7 +72,8 @@ qt_add_qml_module(VocaCpp
         src/ui/NewWordsFromTextPopup.qml
         src/ui/ExpressionsPopup.qml
         src/ui/LearnedWordsPopup.qml
-    src/ui/TranslatePopup.qml
+        src/ui/TranslatePopup.qml
+        src/ui/PdfModePopup.qml
 )
 
 # Embed static assets (vocabulary JSON) so it’s available at runtime

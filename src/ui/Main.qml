@@ -44,6 +44,7 @@ ApplicationWindow {
         reviewPopup.close()
         dashboardPopup.close()
         translatePopup.close()
+        pdfModePopup.close()
     }
 
     function openPane(name) {
@@ -66,6 +67,8 @@ ApplicationWindow {
             dashboardPopup.open()
         } else if (name === "translate") {
             translatePopup.open()
+        } else if (name === "pdfMode") {
+            pdfModePopup.open()
         }
     }
 
@@ -297,6 +300,13 @@ ApplicationWindow {
                     tileColor: "#172b47"
                     active: window.activePane === "translate"
                     onClicked: window.openPane("translate")
+                }
+                NavTileButton {
+                    iconSymbol: "📄"
+                    labelText: "PDF mode"
+                    tileColor: "#172b47"
+                    active: window.activePane === "pdfMode"
+                    onClicked: window.openPane("pdfMode")
                 }
 
                 Item { Layout.fillHeight: true }
@@ -833,6 +843,18 @@ ApplicationWindow {
         height: rightPaneHost.height * 0.98
         anchors.centerIn: parent
         onClosed: if (window.activePane === "translate") window.activePane = "home"
+    }
+    PdfModePopup {
+        id: pdfModePopup
+        embeddedMode: true
+        parent: rightPaneHost
+        modal: false
+        focus: false
+        closePolicy: Popup.NoAutoClose
+        width: rightPaneHost.width * 0.98
+        height: rightPaneHost.height * 0.98
+        anchors.centerIn: parent
+        onClosed: if (window.activePane === "pdfMode") window.activePane = "home"
     }
     
     LearnPopup {
