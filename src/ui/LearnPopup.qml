@@ -21,9 +21,9 @@ Popup {
     }
 
     background: Rectangle {
-        color: "#1e232e" // surface
+        color: window.surfaceColor
         radius: 8
-        border.color: "#3385e6" // top thin line color approx
+        border.color: window.accentColor
         border.width: 1
     }
 
@@ -34,7 +34,7 @@ Popup {
 
         Text {
             text: "Learn (" + app.state.newSequence.length + " words)"
-            color: "#f2faff"
+            color: window.textPrimary
             font.pixelSize: 24
             Layout.fillWidth: true
         }
@@ -42,7 +42,7 @@ Popup {
         Rectangle {
             Layout.fillWidth: true
             height: 2
-            color: "#3385e6"
+            color: window.accentColor
         }
 
         RowLayout {
@@ -50,7 +50,7 @@ Popup {
             spacing: 10
             Text {
                 text: "Order:"
-                color: "#c7d1e0"
+                color: window.textSecondary
                 font.pixelSize: 24
             }
             ComboBox {
@@ -71,7 +71,7 @@ Popup {
 
         Text {
             text: app.state.learnCurrentWord ? app.state.learnCurrentWord : "No new words left!"
-            color: app.state.learnCurrentWord ? "#f2faff" : "#c7d1e0"
+            color: app.state.learnCurrentWord ? window.textPrimary : window.textSecondary
             font.pixelSize: 64
             Layout.alignment: Qt.AlignHCenter
             // Underline hint on hover to signal clickability
@@ -94,7 +94,7 @@ Popup {
 
         Text {
             text: "<i>Click the word above to add meanings and examples.</i>"
-            color: "#60707f"
+            color: window.textMuted
             font.pixelSize: 16
             textFormat: Text.RichText
             Layout.alignment: Qt.AlignHCenter
@@ -112,8 +112,8 @@ Popup {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 font.pixelSize: 24
-                palette.buttonText: "#f2faff"
-                palette.button: "#40a661" // success (green)
+                palette.buttonText: window.textPrimary
+                palette.button: window.accentStrong
                 onClicked: app.markLearnWordKnown()
                 enabled: app.state.learnCurrentWord !== ""
             }
@@ -122,8 +122,8 @@ Popup {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 font.pixelSize: 24
-                palette.buttonText: "#f2faff"
-                palette.button: "#5cc27d" // lighter green
+                palette.buttonText: window.textPrimary
+                palette.button: "#735fc7"
                 onClicked: app.nextLearnWord()
                 enabled: app.state.learnCurrentWord !== ""
             }
@@ -132,8 +132,8 @@ Popup {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 font.pixelSize: 24
-                palette.buttonText: "#f2faff"
-                palette.button: "#cc4c4c" // red
+                palette.buttonText: window.textPrimary
+                palette.button: window.dangerColor
                 onClicked: app.removeLearnWord()
                 enabled: app.state.learnCurrentWord !== ""
             }
@@ -144,8 +144,8 @@ Popup {
             Layout.fillWidth: true
             Layout.preferredHeight: 60
             font.pixelSize: 24
-            palette.buttonText: "#f2faff"
-            palette.button: "#8c8ce6" // light purple/blue
+            palette.buttonText: window.textPrimary
+            palette.button: window.accentColor
             onClicked: {
                 learnPopup.close()
                 reviewPopup.open()
@@ -157,8 +157,8 @@ Popup {
             Layout.fillWidth: true
             Layout.preferredHeight: 60
             font.pixelSize: 24
-            palette.buttonText: "#f2faff"
-            palette.button: "#468c99" // teal
+            palette.buttonText: window.textPrimary
+            palette.button: "#5f4f9b"
             onClicked: {
                 if (learnedWordsPopup) {
                     learnedWordsPopup.open()
@@ -173,8 +173,8 @@ Popup {
             Layout.fillWidth: true
             Layout.preferredHeight: 80
             font.pixelSize: 24
-            palette.buttonText: "#f2faff"
-            palette.button: "#808080" // gray
+            palette.buttonText: window.textPrimary
+            palette.button: window.surfaceAltColor
             onClicked: learnPopup.close()
         }
     }

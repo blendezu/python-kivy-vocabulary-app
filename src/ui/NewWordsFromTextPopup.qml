@@ -13,14 +13,14 @@ Popup {
     anchors.centerIn: parent
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
 
-    background: Rectangle { color: "#1e232e"; radius: 8; border.color: "#333"; border.width: 1 }
+    background: Rectangle { color: window.surfaceColor; radius: 8; border.color: window.borderColor; border.width: 1 }
 
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 12
         spacing: 8
 
-        Text { text: "Scan Text for New Words"; color: "#f2faff"; font.pixelSize: 20 }
+    Text { text: "Scan Text for New Words"; color: window.textPrimary; font.pixelSize: 20 }
 
         TextArea {
             id: inputArea

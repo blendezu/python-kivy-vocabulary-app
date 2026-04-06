@@ -20,8 +20,8 @@ Popup {
     signal addClicked()
 
     background: Rectangle {
-        color: "#1e1e1e"
-        border.color: "#333333"
+        color: window.surfaceColor
+        border.color: window.borderColor
         border.width: 1
         radius: 10
     }
@@ -75,7 +75,7 @@ Popup {
                 height: 50
                 
                 background: Rectangle {
-                    color: hovered ? "#333333" : "transparent"
+                    color: hovered ? window.surfaceAltColor : "transparent"
                     radius: 4
                 }
 
@@ -108,7 +108,7 @@ Popup {
                 text: "Add"
                 visible: root.allowAdd
                 onClicked: root.addClicked()
-                palette.button: "#007ACC"
+                palette.button: window.accentColor
                 palette.buttonText: "white"
             }
         }

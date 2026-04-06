@@ -21,8 +21,8 @@ Popup {
     property int maxYear: new Date().getFullYear()
 
     background: Rectangle {
-        color: "#12141a" // Matched Python theme["bg"]
-        border.color: "#3385e6" // Accent
+        color: window.surfaceColor
+        border.color: window.accentColor
         border.width: 1
         radius: 8
     }
@@ -52,14 +52,14 @@ Popup {
             Button {
                 text: "<"
                 font.pixelSize: 24
-                palette.buttonText: "#f2faff"
+                palette.buttonText: window.textPrimary
                 palette.button: "transparent"
                 onClicked: root.close()
                 flat: true
             }
             Text {
                 text: "Dashboard"
-                color: "#f2faff"
+                color: window.textPrimary
                 font.pixelSize: 24
                 font.bold: true
                 Layout.fillWidth: true
@@ -78,23 +78,23 @@ Popup {
             rowSpacing: 5
             columnSpacing: 20
             
-            Text { text: "Today:"; color: "#e6f2ff"; font.pixelSize: 18 }
-            Text { text: (summary.today || 0) + " words"; color: "#e6f2ff"; font.pixelSize: 18; font.bold: true }
+            Text { text: "Today:"; color: window.textPrimary; font.pixelSize: 18 }
+            Text { text: (summary.today || 0) + " words"; color: window.textPrimary; font.pixelSize: 18; font.bold: true }
 
-            Text { text: "This week:"; color: "#e6f2ff"; font.pixelSize: 18 }
-            Text { text: (summary.week || 0) + " words"; color: "#e6f2ff"; font.pixelSize: 18; font.bold: true }
+            Text { text: "This week:"; color: window.textPrimary; font.pixelSize: 18 }
+            Text { text: (summary.week || 0) + " words"; color: window.textPrimary; font.pixelSize: 18; font.bold: true }
 
-            Text { text: "This month:"; color: "#e6f2ff"; font.pixelSize: 18 }
-            Text { text: (summary.month || 0) + " words"; color: "#e6f2ff"; font.pixelSize: 18; font.bold: true }
+            Text { text: "This month:"; color: window.textPrimary; font.pixelSize: 18 }
+            Text { text: (summary.month || 0) + " words"; color: window.textPrimary; font.pixelSize: 18; font.bold: true }
 
-            Text { text: "This year:"; color: "#e6f2ff"; font.pixelSize: 18 }
-            Text { text: (summary.year || 0) + " words"; color: "#e6f2ff"; font.pixelSize: 18; font.bold: true }
+            Text { text: "This year:"; color: window.textPrimary; font.pixelSize: 18 }
+            Text { text: (summary.year || 0) + " words"; color: window.textPrimary; font.pixelSize: 18; font.bold: true }
         }
 
         Rectangle {
             Layout.fillWidth: true
             height: 1
-            color: "#333"
+            color: window.borderColor
             Layout.topMargin: 10
             Layout.bottomMargin: 10
         }
@@ -162,11 +162,11 @@ Popup {
                     Layout.alignment: Qt.AlignHCenter
                     spacing: 20
                     
-                    Rectangle { width: 15; height: 15; color: "#59bf59" } // Green
-                    Text { text: "same/more learned"; color: "white"; font.pixelSize: 14 }
+                    Rectangle { width: 15; height: 15; color: window.accentStrong }
+                    Text { text: "same/more learned"; color: window.textPrimary; font.pixelSize: 14 }
                     
-                    Rectangle { width: 15; height: 15; color: "#d94040" } // Red
-                    Text { text: "less learned"; color: "white"; font.pixelSize: 14 }
+                    Rectangle { width: 15; height: 15; color: window.dangerColor }
+                    Text { text: "less learned"; color: window.textPrimary; font.pixelSize: 14 }
                 }
                 
                 Item { height: 20; Layout.fillWidth: true } // Bottom spacer
@@ -177,8 +177,8 @@ Popup {
             text: "Close"
             Layout.fillWidth: true
             Layout.preferredHeight: 50
-            palette.button: "#555"
-            palette.buttonText: "white"
+            palette.button: window.surfaceAltColor
+            palette.buttonText: window.textPrimary
             onClicked: root.close()
         }
     }
@@ -202,7 +202,7 @@ Popup {
             
             Text {
                 text: title
-                color: "#f2faff"
+                color: window.textPrimary
                 font.pixelSize: 20
                 Layout.alignment: Qt.AlignHCenter
             }
@@ -234,7 +234,7 @@ Popup {
                             
                             Rectangle {
                                 width: parent.width
-                                color: good ? "#59bf59" : "#d94040"
+                                color: good ? window.accentStrong : window.dangerColor
                                 radius: 2
                                 anchors.bottom: parent.bottom
                                 height: (parent.height * val) / max
@@ -242,7 +242,7 @@ Popup {
                                 // Value Label above bar
                                 Text {
                                     text: val > 0 ? val : ""
-                                    color: "white"
+                                    color: window.textPrimary
                                     font.pixelSize: 12
                                     anchors.horizontalCenter: parent.horizontalCenter
                                     anchors.bottom: parent.top
@@ -254,7 +254,7 @@ Popup {
                             // X-Axis Label below bar
                             Text {
                                 text: labels[index] || ""
-                                color: "#aaa"
+                                color: window.textMuted
                                 font.pixelSize: 11
                                 anchors.top: parent.bottom
                                 anchors.topMargin: 5
@@ -274,8 +274,8 @@ Popup {
                 Button {
                     text: "<"
                     enabled: canGoBack
-                    palette.button: "#555"
-                    palette.buttonText: "white"
+                    palette.button: window.surfaceAltColor
+                    palette.buttonText: window.textPrimary
                     onClicked: backClicked()
                     Layout.preferredWidth: 60
                 }
@@ -283,8 +283,8 @@ Popup {
                 Button {
                     text: ">"
                     enabled: canGoForward
-                    palette.button: "#555"
-                    palette.buttonText: "white"
+                    palette.button: window.surfaceAltColor
+                    palette.buttonText: window.textPrimary
                     onClicked: forwardClicked()
                     Layout.preferredWidth: 60
                 }

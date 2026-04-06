@@ -12,9 +12,9 @@ Popup {
     closePolicy: Popup.CloseOnEscape
 
     background: Rectangle {
-        color: "#1a1e2a"
+        color: window.surfaceColor
         radius: 8
-        border.color: "#3385e6"
+        border.color: window.accentColor
         border.width: 1
     }
 
@@ -35,7 +35,7 @@ Popup {
     Rectangle {
         id: notification
         width: 200; height: 40; radius: 6
-        color: "#40a661"
+        color: window.accentStrong
         anchors.top: parent.top; anchors.topMargin: 20
         anchors.horizontalCenter: parent.horizontalCenter
         z: 100 // On top
@@ -248,8 +248,8 @@ Popup {
             property string tagName: ""
             property bool active: false
             width: 38; height: 24; radius: 4
-            color: active ? "#3385e6" : "#333344"
-            border.color: "#555566"; border.width: 1
+            color: active ? window.accentColor : window.surfaceAltColor
+            border.color: window.borderColor; border.width: 1
             Text { anchors.centerIn: parent; text: tagName; color: "white"; font.pixelSize: 13 }
             MouseArea {
                 anchors.fill: parent; cursorShape: Qt.PointingHandCursor
@@ -345,13 +345,13 @@ Popup {
 
             // + Example button
             Rectangle {
-                width: 110; height: 26; radius: 4; color: "#3385e6"
+                width: 110; height: 26; radius: 4; color: window.accentColor
                 Text { anchors.centerIn: parent; text: "+ Example"; color: "white"; font.pixelSize: 13 }
                 MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: addExampleClicked() }
             }
 
             // Divider
-            Rectangle { width: parent.width; height: 1; color: "#2a3040" }
+            Rectangle { width: parent.width; height: 1; color: window.borderColor }
         }
     }
 
@@ -363,21 +363,21 @@ Popup {
 
         Text {
             text: wordToEdit + " – Meanings & Examples"
-            color: "#f2faff"; font.pixelSize: 22; font.bold: true
+            color: window.textPrimary; font.pixelSize: 22; font.bold: true
             Layout.fillWidth: true
         }
-        Rectangle { height: 2; Layout.fillWidth: true; color: "#3385e6" }
+        Rectangle { height: 2; Layout.fillWidth: true; color: window.accentColor }
 
         // Word row
         RowLayout {
             Layout.fillWidth: true; spacing: 6
-            Text { text: "Word:"; color: "#c7d1e0"; font.pixelSize: 16; Layout.preferredWidth: 50 }
+            Text { text: "Word:"; color: window.textSecondary; font.pixelSize: 16; Layout.preferredWidth: 50 }
             TextField {
                 id: wordInput; font.pixelSize: 16; Layout.fillWidth: true
                 color: "black"; background: Rectangle { color: "white"; radius: 3 }
             }
             Rectangle {
-                width: 140; height: 32; radius: 4; color: "#3385e6"
+                width: 140; height: 32; radius: 4; color: window.accentColor
                 Text { anchors.centerIn: parent; text: "Rename word"; color: "white"; font.pixelSize: 14 }
                 MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor
                     onClicked: { app.correctWord(wordToEdit, wordInput.text); wordToEdit = wordInput.text }
@@ -388,13 +388,13 @@ Popup {
         // IPA row
         RowLayout {
             Layout.fillWidth: true; spacing: 6
-            Text { text: "IPA:"; color: "#c7d1e0"; font.pixelSize: 16; Layout.preferredWidth: 50 }
+            Text { text: "IPA:"; color: window.textSecondary; font.pixelSize: 16; Layout.preferredWidth: 50 }
             TextField {
                 id: ipaField; font.pixelSize: 16; Layout.fillWidth: true
                 color: "black"; background: Rectangle { color: "white"; radius: 3 }
             }
             Rectangle {
-                width: 80; height: 32; radius: 4; color: "#3385e6"
+                width: 80; height: 32; radius: 4; color: window.accentColor
                 Text { anchors.centerIn: parent; text: "Listen"; color: "white"; font.pixelSize: 14 }
                 MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: app.tts.speak(wordToEdit) }
             }
@@ -405,9 +405,9 @@ Popup {
             Layout.fillWidth: true; spacing: 8
             Rectangle {
                 width: 140; height: 28; radius: 4
-                color: isTongueTwister ? "#555577" : "#333344"
-                border.color: isTongueTwister ? "#9988cc" : "#555566"; border.width: 1
-                Text { anchors.centerIn: parent; text: "Tongue-twister"; color: isTongueTwister ? "#ccbbff" : "#8899aa"; font.pixelSize: 13 }
+                color: isTongueTwister ? window.accentStrong : window.surfaceAltColor
+                border.color: isTongueTwister ? window.accentSoft : window.borderColor; border.width: 1
+                Text { anchors.centerIn: parent; text: "Tongue-twister"; color: isTongueTwister ? window.textPrimary : window.textMuted; font.pixelSize: 13 }
                 MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: isTongueTwister = !isTongueTwister }
             }
             Item { Layout.fillWidth: true }
@@ -437,11 +437,11 @@ Popup {
 
             Repeater {
                 model: [
-                    {label: "+ Meaning", color: "#3385e6"},
-                    {label: "Save",      color: "#40a661"},
-                    {label: "Back",      color: "#7777aa"},
-                    {label: "Next",      color: "#5cc27d"},
-                    {label: "Close",     color: "#666677"}
+                    {label: "+ Meaning", color: window.accentColor},
+                    {label: "Save",      color: window.accentStrong},
+                    {label: "Back",      color: "#6b5aa8"},
+                    {label: "Next",      color: "#7a68c5"},
+                    {label: "Close",     color: window.surfaceAltColor}
                 ]
                 Rectangle {
                     required property var modelData

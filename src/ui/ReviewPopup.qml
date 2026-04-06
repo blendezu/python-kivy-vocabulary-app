@@ -14,9 +14,9 @@ Popup {
     property var editPopupRef: null
 
     background: Rectangle {
-        color: "#22252a"
+        color: window.surfaceColor
         radius: 8
-        border.color: "#3385e6"
+        border.color: window.accentColor
         border.width: 1
     }
 
@@ -62,18 +62,18 @@ Popup {
         // ── Header ──────────────────────────────────────────
         Text {
             text: "Review"
-            color: "#f2faff"
+            color: window.textPrimary
             font.pixelSize: 24
             font.bold: true
             Layout.fillWidth: true
         }
-        Rectangle { height: 2; Layout.fillWidth: true; color: "#3385e6" }
+        Rectangle { height: 2; Layout.fillWidth: true; color: window.accentColor }
 
         // ── Date filters ─────────────────────────────────────
         RowLayout {
             Layout.fillWidth: true
             spacing: 8
-            Text { text: "From:"; color: "#9bb0c8"; font.pixelSize: 17; Layout.preferredWidth: 48 }
+            Text { text: "From:"; color: window.textSecondary; font.pixelSize: 17; Layout.preferredWidth: 48 }
             TextField {
                 id: fromInput
                 Layout.fillWidth: true
@@ -82,7 +82,7 @@ Popup {
                 background: Rectangle { color: "#e8eff5"; radius: 4 }
                 onTextChanged: Qt.callLater(root.rebuildPool)
             }
-            Text { text: "To:"; color: "#9bb0c8"; font.pixelSize: 17; Layout.preferredWidth: 30 }
+            Text { text: "To:"; color: window.textSecondary; font.pixelSize: 17; Layout.preferredWidth: 30 }
             TextField {
                 id: toInput
                 Layout.fillWidth: true
@@ -98,12 +98,12 @@ Popup {
                 checkable: true
                 Layout.preferredWidth: 160
                 background: Rectangle {
-                    color: twisterBtn.checked ? "#6655aa" : "#3d4355"
+                    color: twisterBtn.checked ? window.accentStrong : window.surfaceAltColor
                     radius: 4
                 }
                 contentItem: Text {
                     text: twisterBtn.text
-                    color: "#f2faff"
+                    color: window.textPrimary
                     font: twisterBtn.font
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
@@ -115,7 +115,7 @@ Popup {
         // ── Word count label ─────────────────────────────────
         Text {
             text: root.reviewPool.length + " words in pool"
-            color: "#6888cc"
+            color: window.accentSoft
             font.pixelSize: 17
             Layout.fillWidth: true
         }
@@ -126,7 +126,7 @@ Popup {
         // ── Current word ─────────────────────────────────────
         Text {
             text: root.currentItem.word || (root.reviewPool.length === 0 ? "No words in pool" : "")
-            color: root.reviewPool.length === 0 ? "#666" : "#f2faff"
+            color: root.reviewPool.length === 0 ? window.textMuted : window.textPrimary
             font.pixelSize: 64
             horizontalAlignment: Text.AlignHCenter
             Layout.fillWidth: true
@@ -147,7 +147,7 @@ Popup {
         // ── IPA ──────────────────────────────────────────────
         Text {
             text: root.currentItem.ipa ? "[" + root.currentItem.ipa + "]" : ""
-            color: "#a0ccbf"
+            color: window.accentSoft
             font.pixelSize: 22
             horizontalAlignment: Text.AlignHCenter
             Layout.fillWidth: true
@@ -162,7 +162,7 @@ Popup {
                 text: "Listen"
                 font.pixelSize: 20
                 width: 110; height: 54
-                background: Rectangle { color: "#3b82f6"; radius: 6 }
+                background: Rectangle { color: window.accentColor; radius: 6 }
                 contentItem: Text { text: parent.text; color: "#fff"; font: parent.font; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                 onClicked: if (root.currentItem.word) app.tts.speak(root.currentItem.word)
                 enabled: !!root.currentItem.word
@@ -250,7 +250,7 @@ Popup {
 
                         Text {
                             text: (index + 1) + ". " + (modelData.meaning || "")
-                            color: "#f0f4ff"
+                            color: window.textPrimary
                             font.pixelSize: 20
                             wrapMode: Text.WordWrap
                             Layout.fillWidth: true
@@ -261,7 +261,7 @@ Popup {
                             model: modelData.examples || []
                             delegate: Text {
                                 text: "- " + modelData
-                                color: "#b0c8e8"
+                                color: window.textSecondary
                                 font.pixelSize: 18
                                 wrapMode: Text.WordWrap
                                 Layout.fillWidth: true
@@ -289,12 +289,12 @@ Popup {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 background: Rectangle { 
-                    color: "#3d4355" // Darker grey for close
+                    color: window.surfaceAltColor
                     radius: 6 
                 }
                 contentItem: Text { 
                     text: parent.text
-                    color: "#e2e8f0"
+                    color: window.textPrimary
                     font: parent.font
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
@@ -308,7 +308,7 @@ Popup {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 background: Rectangle {
-                    color: root.revealed ? "#22c55e" : "#3b82f6" // Green or Blue
+                    color: root.revealed ? window.accentStrong : window.accentColor
                     radius: 6
                 }
                 contentItem: Text { 

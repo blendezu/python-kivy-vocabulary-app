@@ -11,7 +11,7 @@ Popup {
     anchors.centerIn: parent
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
 
-    background: Rectangle { color: "#1e232e"; radius: 8; border.color: "#333"; border.width: 1 }
+    background: Rectangle { color: window.surfaceColor; radius: 8; border.color: window.borderColor; border.width: 1 }
 
     ColumnLayout {
         anchors.fill: parent
@@ -20,7 +20,7 @@ Popup {
 
         Text { 
             text: "Paste new words, one per line (with or without prefix). They will be saved as 'New'."
-            color: "#f2faff"
+            color: window.textPrimary
             font.pixelSize: 18
             wrapMode: Text.WordWrap
             Layout.fillWidth: true

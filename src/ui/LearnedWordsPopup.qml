@@ -14,7 +14,7 @@ Popup {
     anchors.centerIn: parent
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
 
-    background: Rectangle { color: "#1e232e"; radius: 8; border.color: "#333"; border.width: 1 }
+    background: Rectangle { color: window.surfaceColor; radius: 8; border.color: window.borderColor; border.width: 1 }
 
     ColumnLayout {
         anchors.fill: parent
@@ -24,7 +24,7 @@ Popup {
         Text { 
             id: headerLabel
             text: "Learned words & expressions"
-            color: "#f2faff"
+            color: window.textPrimary
             font.pixelSize: 32
             Layout.fillWidth: true
         }
@@ -61,7 +61,7 @@ Popup {
             delegate: Rectangle {
                 width: listView.width
                 height: contentCol.height + 16
-                color: "#282d38"
+                color: window.surfaceAltColor
                 radius: 6
 
                 ColumnLayout {
@@ -79,8 +79,8 @@ Popup {
                         Button {
                             text: "Listen"
                             font.pixelSize: 18
-                            background: Rectangle { color: "#408cff"; radius: 4 }
-                            contentItem: Text { text: parent.text; color: "#f2faff"; font: parent.font; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                            background: Rectangle { color: window.accentColor; radius: 4 }
+                            contentItem: Text { text: parent.text; color: window.textPrimary; font: parent.font; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                             onClicked: {
                                 if (app.tts) app.tts.speak(modelData.word)
                             }
@@ -88,7 +88,7 @@ Popup {
                         
                         Text {
                             text: modelData.word
-                            color: "#f2faff"
+                            color: window.textPrimary
                             font.pixelSize: 26
                             Layout.fillWidth: true
                             elide: Text.ElideRight
@@ -108,7 +108,7 @@ Popup {
 
                     Text {
                         text: "[IPA] " + modelData.ipa
-                        color: "#a0ccbf"
+                        color: window.accentSoft
                         font.pixelSize: 18
                         visible: modelData.ipa !== ""
                         Layout.leftMargin: 8
@@ -123,7 +123,7 @@ Popup {
                             
                             Text {
                                 text: (index + 1) + ". " + (modelData.pos.length > 0 ? ("(" + modelData.pos.join(", ") + ") ") : "") + modelData.meaning
-                                color: "#e6f2ff"
+                                color: window.textPrimary
                                 font.pixelSize: 22
                                 wrapMode: Text.WordWrap
                                 Layout.fillWidth: true
@@ -133,7 +133,7 @@ Popup {
                                 model: modelData.examples
                                 delegate: Text {
                                     text: "- " + modelData
-                                    color: "#bcdcff"
+                                    color: window.textSecondary
                                     font.pixelSize: 18
                                     wrapMode: Text.WordWrap
                                     Layout.fillWidth: true
@@ -145,7 +145,7 @@ Popup {
                     
                     Text {
                         text: "– No meanings available –"
-                        color: "#888888"
+                        color: window.textMuted
                         font.pixelSize: 16
                         visible: !modelData.details || modelData.details.length === 0
                         Layout.leftMargin: 8
@@ -155,7 +155,7 @@ Popup {
             
             Text {
                 text: "No results."
-                color: "#888888"
+                color: window.textMuted
                 font.pixelSize: 20
                 visible: root.learnedItems.length === 0
                 anchors.centerIn: parent

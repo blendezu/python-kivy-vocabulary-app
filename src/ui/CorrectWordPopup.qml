@@ -12,9 +12,9 @@ Popup {
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
     
     background: Rectangle {
-        color: "#1a1a1a"
+        color: window.surfaceColor
         radius: 8
-        border.color: "#333333"
+        border.color: window.borderColor
         border.width: 1
     }
     
@@ -34,7 +34,7 @@ Popup {
         
         Text {
             text: "Correct word and save:"
-            color: "#e6f2ff"
+            color: window.textPrimary
             font.pixelSize: 18
             Layout.fillWidth: true
         }
@@ -46,9 +46,9 @@ Popup {
             font.pixelSize: 22
             color: "white"
             background: Rectangle {
-                color: "#2e2e2e"
+                color: window.surfaceAltColor
                 radius: 4
-                border.color: inputField.activeFocus ? "#3385e6" : "#404040"
+                border.color: inputField.activeFocus ? window.accentColor : window.borderColor
             }
         }
         
@@ -64,7 +64,7 @@ Popup {
                 height: 45
                 font.pixelSize: 20
                 background: Rectangle {
-                    color: "#cc3333" // Kivy red closeButton
+                    color: window.dangerColor
                     radius: 4
                 }
                 contentItem: Text {
@@ -83,7 +83,7 @@ Popup {
                 height: 45
                 font.pixelSize: 20
                 background: Rectangle {
-                    color: "#339933" // (0.2, 0.6, 0.2, 1) Kivy
+                    color: window.accentStrong
                     radius: 4
                 }
                 contentItem: Text {
