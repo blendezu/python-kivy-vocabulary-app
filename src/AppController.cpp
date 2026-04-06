@@ -9,6 +9,10 @@
 #include <QJsonParseError>
 #include <QFileInfo>
 #include <QRegularExpression>
+#include <QProcess>
+#include <QProcessEnvironment>
+#include <QCoreApplication>
+#include <QStringConverter>
 #include <algorithm>
 #include <iostream>
 
@@ -1266,5 +1270,129 @@ QVariantList AppController::getExpressionsWithDetails(const QString &query) cons
     }
     
     return result;
+}
+
+QString AppController::resolveNllbScriptPath() const
+{
+    const QString appDir = QCoreApplication::applicationDirPath();
+
+    // 1) macOS bundle resources (preferred for packaged app)
+    const QString bundleScript = appDir + "/../Resources/scripts/nllb_translate.py";
+    if (QFileInfo::exists(bundleScript)) {
+        return bundleScript;
+    }
+
+    // 2) Development fallback relative to source tree
+    const QString sourceScript = QFileInfo(QStringLiteral(__FILE__)).absolutePath() + "/../scripts/nllb_translate.py";
+    if (QFileInfo::exists(sourceScript)) {
+        return sourceScript;
+    }
+
+    // 3) Workspace root fallback
+    const QString repoScript = QFileInfo(QStringLiteral(__FILE__)).absolutePath() + "/../../scripts/nllb_translate.py";
+    if (QFileInfo::exists(repoScript)) {
+        return repoScript;
+    }
+
+    return QString();
+}
+
+QVariantMap AppController::translateText(const QString &text, const QString &sourceLangCode, const QString &targetLangCode) const
+{
+    QVariantMap out;
+
+    const QString cleanText = text.trimmed();
+    if (cleanText.isEmpty()) {
+        out["ok"] = false;
+        out["error"] = "Input text is empty.";
+        return out;
+    }
+
+    if (sourceLangCode.trimmed().isEmpty() || targetLangCode.trimmed().isEmpty()) {
+        out["ok"] = false;
+        out["error"] = "Source and target language are required.";
+        return out;
+    }
+
+    if (sourceLangCode == targetLangCode) {
+        out["ok"] = true;
+        out["translated"] = cleanText;
+        return out;
+    }
+
+    const QString scriptPath = resolveNllbScriptPath();
+    if (scriptPath.isEmpty()) {
+        out["ok"] = false;
+        out["error"] = "Translation script not found (scripts/nllb_translate.py).";
+        return out;
+    }
+
+    QString pythonExe = QString::fromLocal8Bit(qgetenv("VOCA_TRANSLATE_PYTHON")).trimmed();
+    if (pythonExe.isEmpty()) {
+        pythonExe = "python3";
+    }
+
+    QProcess process;
+    process.setProgram(pythonExe);
+    process.setArguments({
+        scriptPath,
+        "--src", sourceLangCode,
+        "--tgt", targetLangCode,
+        "--text", cleanText
+    });
+
+    process.start();
+    if (!process.waitForStarted(5000)) {
+        out["ok"] = false;
+        out["error"] = "Could not start Python translation process.";
+        return out;
+    }
+
+    bool timeoutOk = false;
+    int timeoutMs = QString::fromLocal8Bit(qgetenv("VOCA_TRANSLATE_TIMEOUT_MS")).toInt(&timeoutOk);
+    if (!timeoutOk || timeoutMs < 10000) {
+        timeoutMs = 900000; // 15 minutes default to survive first model download/load
+    }
+
+    if (!process.waitForFinished(timeoutMs)) {
+        process.kill();
+        out["ok"] = false;
+        out["error"] = QString("Translation timed out after %1 seconds. First run may download/load the model; try again or increase VOCA_TRANSLATE_TIMEOUT_MS.")
+                            .arg(timeoutMs / 1000);
+        return out;
+    }
+
+    const QByteArray stdOut = process.readAllStandardOutput().trimmed();
+    const QByteArray stdErr = process.readAllStandardError().trimmed();
+
+    QJsonParseError parseError;
+    const QJsonDocument doc = QJsonDocument::fromJson(stdOut, &parseError);
+    if (parseError.error != QJsonParseError::NoError || !doc.isObject()) {
+        out["ok"] = false;
+        QString err = "Translator returned invalid output.";
+        if (!stdErr.isEmpty()) {
+            err += " " + QString::fromUtf8(stdErr);
+        }
+        out["error"] = err;
+        return out;
+    }
+
+    const QJsonObject obj = doc.object();
+    if (!obj.value("ok").toBool(false)) {
+        out["ok"] = false;
+        QString err = obj.value("error").toString("Translation failed.");
+        if (!stdErr.isEmpty()) {
+            err += " " + QString::fromUtf8(stdErr);
+        }
+        out["error"] = err;
+        return out;
+    }
+
+    out["ok"] = true;
+    out["translated"] = obj.value("translated").toString();
+    out["device"] = obj.value("device").toString();
+    out["model"] = obj.value("model").toString();
+    out["warning"] = obj.value("warning").toString();
+    return out;
 }
 

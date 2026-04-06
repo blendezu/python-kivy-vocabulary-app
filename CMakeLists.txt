@@ -31,7 +31,11 @@ if(APPLE)
     set_source_files_properties("3rdparty/whisper.cpp/models/ggml-base.en.bin"
         PROPERTIES MACOSX_PACKAGE_LOCATION Resources
     )
+    set_source_files_properties("scripts/nllb_translate.py"
+        PROPERTIES MACOSX_PACKAGE_LOCATION Resources/scripts
+    )
     target_sources(VocaCpp PRIVATE "3rdparty/whisper.cpp/models/ggml-base.en.bin")
+    target_sources(VocaCpp PRIVATE "scripts/nllb_translate.py")
 endif()
 
 set_target_properties(VocaCpp PROPERTIES
@@ -66,6 +70,7 @@ qt_add_qml_module(VocaCpp
         src/ui/NewWordsFromTextPopup.qml
         src/ui/ExpressionsPopup.qml
         src/ui/LearnedWordsPopup.qml
+    src/ui/TranslatePopup.qml
 )
 
 # Embed static assets (vocabulary JSON) so it’s available at runtime

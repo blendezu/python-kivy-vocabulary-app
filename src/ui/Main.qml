@@ -43,6 +43,7 @@ ApplicationWindow {
         learnedWordsPopup.close()
         reviewPopup.close()
         dashboardPopup.close()
+        translatePopup.close()
     }
 
     function openPane(name) {
@@ -63,6 +64,8 @@ ApplicationWindow {
             reviewPopup.open()
         } else if (name === "dashboard") {
             dashboardPopup.open()
+        } else if (name === "translate") {
+            translatePopup.open()
         }
     }
 
@@ -97,8 +100,7 @@ ApplicationWindow {
         property string iconSymbol: ""
         property string labelText: ""
         property bool active: false
-        property color tileColor: window.surfaceAltColor
-        property bool isAccentTile: false
+        property color tileColor: "#172b47"
 
         Layout.fillWidth: true
         Layout.preferredHeight: 54
@@ -113,7 +115,7 @@ ApplicationWindow {
             color: navTile.active
                    ? Qt.rgba(window.accentColor.r, window.accentColor.g, window.accentColor.b, 0.2)
                    : (navTile.hovered
-                      ? Qt.rgba(navTile.tileColor.r, navTile.tileColor.g, navTile.tileColor.b, 0.95)
+                      ? Qt.rgba(27 / 255, 47 / 255, 78 / 255, 0.95)
                       : navTile.tileColor)
             border.color: navTile.active
                           ? Qt.lighter(window.accentColor, 1.16)
@@ -122,17 +124,6 @@ ApplicationWindow {
 
             Behavior on color { ColorAnimation { duration: 120 } }
             Behavior on border.color { ColorAnimation { duration: 120 } }
-
-            Rectangle {
-                visible: navTile.active
-                anchors.left: parent.left
-                anchors.top: parent.top
-                anchors.bottom: parent.bottom
-                width: 4
-                radius: 2
-                color: window.accentSoft
-                anchors.margins: 9
-            }
 
             Rectangle {
                 anchors.fill: parent
@@ -155,9 +146,7 @@ ApplicationWindow {
                 radius: 9
                 color: navTile.active
                        ? Qt.rgba(window.accentColor.r, window.accentColor.g, window.accentColor.b, 0.22)
-                       : (navTile.isAccentTile
-                          ? Qt.rgba(window.dangerColor.r, window.dangerColor.g, window.dangerColor.b, 0.14)
-                          : Qt.rgba(1, 1, 1, 0.06))
+                       : Qt.rgba(1, 1, 1, 0.06)
                 border.color: navTile.active
                               ? Qt.rgba(window.accentSoft.r, window.accentSoft.g, window.accentSoft.b, 0.85)
                               : Qt.rgba(1, 1, 1, 0.10)
@@ -249,71 +238,68 @@ ApplicationWindow {
                 NavTileButton {
                     iconSymbol: "⌂"
                     labelText: "Home"
-                    tileColor: "#1a2740"
+                    tileColor: "#172b47"
                     active: window.activePane === "home"
                     onClicked: window.openPane("home")
                 }
                 NavTileButton {
                     iconSymbol: "＋"
                     labelText: "Add new words"
-                    tileColor: window.surfaceAltColor
+                    tileColor: "#172b47"
                     active: window.activePane === "add"
                     onClicked: window.openPane("add")
                 }
                 NavTileButton {
                     iconSymbol: "⌁"
                     labelText: "From text"
-                    tileColor: "#1d2b43"
+                    tileColor: "#172b47"
                     active: window.activePane === "fromText"
                     onClicked: window.openPane("fromText")
                 }
                 NavTileButton {
                     iconSymbol: "✎"
                     labelText: "Expressions"
-                    tileColor: window.surfaceAltColor
+                    tileColor: "#172b47"
                     active: window.activePane === "expressions"
                     onClicked: window.openPane("expressions")
                 }
                 NavTileButton {
                     iconSymbol: "⚡"
                     labelText: "Learn"
-                    tileColor: "#1d2f50"
+                    tileColor: "#172b47"
                     active: window.activePane === "learn"
                     onClicked: window.openPane("learn")
                 }
                 NavTileButton {
                     iconSymbol: "✓"
                     labelText: "Learned words"
-                    tileColor: window.surfaceAltColor
+                    tileColor: "#172b47"
                     active: window.activePane === "learned"
                     onClicked: window.openPane("learned")
                 }
                 NavTileButton {
                     iconSymbol: "↻"
                     labelText: "Review"
-                    tileColor: "#3a2130"
-                    isAccentTile: true
+                    tileColor: "#172b47"
                     active: window.activePane === "review"
                     onClicked: window.openPane("review")
                 }
                 NavTileButton {
                     iconSymbol: "◔"
                     labelText: "Dashboard"
-                    tileColor: window.surfaceAltColor
+                    tileColor: "#172b47"
                     active: window.activePane === "dashboard"
                     onClicked: window.openPane("dashboard")
                 }
+                NavTileButton {
+                    iconSymbol: "🌐"
+                    labelText: "Translate"
+                    tileColor: "#172b47"
+                    active: window.activePane === "translate"
+                    onClicked: window.openPane("translate")
+                }
 
                 Item { Layout.fillHeight: true }
-
-                Text {
-                    text: "Double-click removed words to restore"
-                    color: window.textMuted
-                    wrapMode: Text.WordWrap
-                    font.family: "Inter"
-                    font.pixelSize: 12
-                    opacity: 0.92
-                }
             }
         }
 
@@ -654,16 +640,6 @@ ApplicationWindow {
                             }
                         }
 
-                        ColorButton {
-                            text: window.hintVisible ? "◉ Hide tip" : "◉ Show tip"
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 44
-                            font.family: "Inter"
-                            font.pixelSize: 14
-                            bgColor: "#13203a"
-                            onClicked: window.hintVisible = !window.hintVisible
-                        }
-
                         Item { Layout.fillHeight: true }
                     }
                 }
@@ -810,6 +786,16 @@ ApplicationWindow {
                                 }
                             }
                         }
+
+                        Text {
+                            text: "Double-click removed words to restore"
+                            color: window.textMuted
+                            wrapMode: Text.WordWrap
+                            font.family: "Inter"
+                            font.pixelSize: 12
+                            opacity: 0.92
+                            Layout.fillWidth: true
+                        }
                     }
                 }
                 }
@@ -835,6 +821,18 @@ ApplicationWindow {
         height: rightPaneHost.height * 0.98
         anchors.centerIn: parent
         onClosed: if (window.activePane === "dashboard") window.activePane = "home"
+    }
+    TranslatePopup {
+        id: translatePopup
+        embeddedMode: true
+        parent: rightPaneHost
+        modal: false
+        focus: false
+        closePolicy: Popup.NoAutoClose
+        width: rightPaneHost.width * 0.98
+        height: rightPaneHost.height * 0.98
+        anchors.centerIn: parent
+        onClosed: if (window.activePane === "translate") window.activePane = "home"
     }
     
     LearnPopup {

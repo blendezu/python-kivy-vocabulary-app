@@ -73,10 +73,12 @@ public:
     Q_INVOKABLE QVariantList getExpressionsWithDetails(const QString &query) const;
     Q_INVOKABLE void addExpression(const QString &phrase, const QVariantList &details);
     Q_INVOKABLE int addWords(const QStringList &words);
+    Q_INVOKABLE QVariantMap translateText(const QString &text, const QString &sourceLangCode, const QString &targetLangCode) const;
 
 private:
     void rebuildEligiblePool();
     QString getRandomWord();
+    QString resolveNllbScriptPath() const;
 
     AppState *m_state;
     ProgressStore *m_store;
